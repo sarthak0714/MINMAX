@@ -1,13 +1,15 @@
 import React from "react";
 import { motion } from "framer-motion";
 import type { IconType } from "react-icons";
-
 export interface DockItem {
   label: string;
   icon: IconType;
   onClick?: () => void;
   active?: boolean;
-  color?: string;
+  color?: {
+    light: string;
+    dark: string;
+  };
 }
 
 interface DockProps {
@@ -24,19 +26,39 @@ const Dock: React.FC<DockProps> = ({ items }) => {
             key={index}
             onClick={item.onClick}
             whileTap={{ scale: 0.95 }}
-            className={`flex flex-col items-center justify-center text-xs font-medium rounded-full px-4 py-3 transition-all duration-300  ${
-              item.active && item.color
-                ? `text-${item.color}`
+            className={`flex flex-col items-center justify-center text-xs font-medium rounded-full px-4 py-3 transition-all duration-300 relative ${
+              item.active
+                ? "text-gray-300"
                 : "text-gray-300 hover:text-white hover:bg-white/10"
             }`}
             style={{
-              background:
+              border:
                 item.active && item.color
-                  ? item.color
-                  : "rgba(255, 255, 255, 0)",
+                  ? `1px solid ${item.color.light}40` // 40 = 25% opacity in hex
+                  : "1px solid transparent",
+              boxShadow:
+                item.active && item.color
+                  ? `inset 0 0 20px ${item.color.light}20, inset 0 0 40px ${item.color.light}10` // Inner glow effect
+                  : "none",
+              background: "transparent",
             }}
           >
-            <item.icon size={18} className="text-white" />
+            {/* Text/Icon with dark color fill */}
+            <div
+              className="flex flex-col items-center justify-center"
+              style={{
+                color: item.active && item.color ? item.color.dark : undefined,
+              }}
+            >
+              <item.icon
+                size={18}
+                className="transition-colors duration-300"
+                style={{
+                  color:
+                    item.active && item.color ? item.color.dark : undefined,
+                }}
+              />
+            </div>
           </motion.button>
         ))}
       </div>

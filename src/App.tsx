@@ -7,53 +7,46 @@ import "./App.css";
 const App = () => {
   const [active, setActive] = useState("Progress");
 
-  const gradientOpacity = 0.5; // Change opacity as needed (0.0 to 1.0)
-  const rgb = (hex: string) => {
-    const h = hex.replace("#", "");
-    const bigint = parseInt(h, 16);
-    const r = (bigint >> 16) & 255;
-    const g = (bigint >> 8) & 255;
-    const b = bigint & 255;
-    return [r, g, b];
-  };
-  const linearGradient = (
-    angle: string,
-    color1: string,
-    color2: string,
-    opacity: number
-  ) =>
-    `linear-gradient(${angle}, rgba(${rgb(color1).join(
-      ","
-    )},${opacity}), rgba(${rgb(color2).join(",")},${opacity}))`;
-
   const items = [
     {
       label: "Today",
       icon: FaHeartbeat,
       active: active === "Today",
       onClick: () => setActive("Today"),
-      color: linearGradient("135deg", "#007aff", "#00c6ff", gradientOpacity),
+      color: {
+        light: "#00c6ff", // Lighter blue for border
+        dark: "#007aff", // Darker blue for text fill
+      },
     },
     {
       label: "Progress",
       icon: FaChartLine,
       active: active === "Progress",
       onClick: () => setActive("Progress"),
-      color: linearGradient("135deg", "#ff3b30", "#ff9500", gradientOpacity),
+      color: {
+        light: "#ff9500", // Lighter orange for border
+        dark: "#ff3b30", // Darker red-orange for text fill
+      },
     },
     {
       label: "Workouts",
       icon: FaRunning,
       active: active === "Workouts",
       onClick: () => setActive("Workouts"),
-      color: linearGradient("135deg", "#ffcc00", "#ff9500", gradientOpacity),
+      color: {
+        light: "#ffcc00", // Yellow for border
+        dark: "#ff9500", // Darker orange for text fill
+      },
     },
     {
       label: "Chat",
       icon: RiChatAiFill,
       active: active === "Chat",
       onClick: () => setActive("Chat"),
-      color: linearGradient("135deg", "#00ff48", "#00ff48", gradientOpacity),
+      color: {
+        light: "#00ff48", // Green for border
+        dark: "#00cc3e", // Darker green for text fill
+      },
     },
   ];
 
