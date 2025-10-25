@@ -18,7 +18,7 @@ interface DockProps {
 
 const Dock: React.FC<DockProps> = ({ items }) => {
   return (
-    <div className="flex justify-center w-full mt-auto mb-6">
+    <div className="flex justify-center w-full mt-auto ">
       {/* Outer glassmorphic dock container */}
       <div className="flex items-center justify-center backdrop-blur-lg border border-[rgba(255,255,255,0.1)] rounded-full px-2 py-2 gap-0.5">
         {items.map((item, index) => (
