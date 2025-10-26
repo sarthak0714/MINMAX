@@ -44,12 +44,7 @@ const Dock: React.FC<DockProps> = ({ items }) => {
             }}
           >
             {/* Text/Icon with dark color fill */}
-            <div
-              className="flex flex-col items-center justify-center"
-              style={{
-                color: item.active && item.color ? item.color.dark : undefined,
-              }}
-            >
+            <div className={`flex flex-col items-center justify-center `}>
               <item.icon
                 size={18}
                 className="transition-colors duration-300"
