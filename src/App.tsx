@@ -5,6 +5,7 @@ import Dock from "./components/Dock";
 import BackgroundAura from "./components/BackgroundGrad";
 import "./App.css";
 import List from "./components/List";
+import exersieItems from "./items/exersise.json";
 
 const App = () => {
   const [active, setActive] = useState("Progress");
@@ -49,7 +50,11 @@ const App = () => {
           {active === "Workouts" ? (
             // scrollable area inside the phone view
             <div className="h-full overflow-y-auto no-scrollbar">
-              <List displayScrollbar={false} showGradients={true} />
+              <List
+                items={exersieItems}
+                displayScrollbar={false}
+                showGradients={true}
+              />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-white opacity-70">

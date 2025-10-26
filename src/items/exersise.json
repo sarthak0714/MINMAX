@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Push-ups",
+    "targetMuscle": ["Chest", "Triceps", "Shoulders"],
+    "meta": ["Bodyweight", "Beginner"]
+  },
+  {
+    "name": "Squats",
+    "targetMuscle": ["Quadriceps", "Glutes", "Hamstrings"],
+    "meta": ["Bodyweight", "Beginner"]
+  },
+  {
+    "name": "Deadlifts",
+    "targetMuscle": ["Hamstrings", "Glutes", "Back"],
+    "meta": ["Barbell", "Advanced"]
+  },
+  {
+    "name": "Bench Press",
+    "targetMuscle": ["Chest", "Triceps", "Shoulders"],
+    "meta": ["Barbell", "Intermediate"]
+  },
+  {
+    "name": "Pull-ups",
+    "targetMuscle": ["Lats", "Biceps", "Back"],
+    "meta": ["Bodyweight", "Intermediate"]
+  },
+  {
+    "name": "Lunges",
+    "targetMuscle": ["Quadriceps", "Glutes"],
+    "meta": ["Bodyweight", "Beginner"]
+  },
+  {
+    "name": "Plank",
+    "targetMuscle": ["Core", "Shoulders"],
+    "meta": ["Bodyweight", "Beginner"]
+  },
+  {
+    "name": "Overhead Press",
+    "targetMuscle": ["Shoulders", "Triceps"],
+    "meta": ["Barbell", "Intermediate"]
+  },
+  {
+    "name": "Rows",
+    "targetMuscle": ["Lats", "Rhomboids", "Biceps"],
+    "meta": ["Barbell", "Intermediate"]
+  },
+  {
+    "name": "Dips",
+    "targetMuscle": ["Triceps", "Chest"],
+    "meta": ["Bodyweight", "Intermediate"]
+  },
+  {
+    "name": "Dumbell Incline Press",
+    "targetMuscle": ["Chest"],
+    "meta": ["Intermediate"]
+  }
+]

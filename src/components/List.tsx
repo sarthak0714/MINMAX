@@ -41,9 +41,15 @@ const AnimatedItem: React.FC<AnimatedItemProps> = ({
   );
 };
 
+interface Exercise {
+  name: string;
+  targetMuscle: string[];
+  meta: string[];
+}
+
 interface AnimatedListProps {
-  items?: string[];
-  onItemSelect?: (item: string, index: number) => void;
+  items?: Exercise[];
+  onItemSelect?: (item: Exercise, index: number) => void;
   showGradients?: boolean;
   enableArrowNavigation?: boolean;
   className?: string;
@@ -53,23 +59,7 @@ interface AnimatedListProps {
 }
 
 const List: React.FC<AnimatedListProps> = ({
-  items = [
-    "Item 1",
-    "Item 2",
-    "Item 3",
-    "Item 4",
-    "Item 5",
-    "Item 6",
-    "Item 7",
-    "Item 8",
-    "Item 9",
-    "Item 10",
-    "Item 11",
-    "Item 12",
-    "Item 13",
-    "Item 14",
-    "Item 15",
-  ],
+  items = [],
   onItemSelect,
   showGradients = true,
   enableArrowNavigation = true,
@@ -149,17 +139,17 @@ const List: React.FC<AnimatedListProps> = ({
 
   return (
     <div
-      className={`relative w-full max-w-2xl ${className}`}
+      className={`relative h-[90vh] w-full max-w-2xl ${className}`}
       style={{
         // Fades out to transparent at the bottom edge
-        maskImage: "linear-gradient(to bottom, black 70%, transparent 100%)",
+        maskImage: "linear-gradient(to bottom, black 90%, transparent 100%)",
         WebkitMaskImage:
-          "linear-gradient(to bottom, black 70%, transparent 100%)",
+          "linear-gradient(to bottom, black 90%, transparent 100%)",
       }}
     >
       <div
         ref={listRef}
-        className={`h-screen  min-h-[300px] overflow-y-auto p-4 ${
+        className={`h-screen h-max-[80vh] min-h-[300px] overflow-y-auto p-4 ${
           displayScrollbar
             ? "[&::-webkit-scrollbar]:w-[8px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-[4px]"
             : "scrollbar-hide"
@@ -190,7 +180,14 @@ const List: React.FC<AnimatedListProps> = ({
                   : "hover:bg-white/15"
               } ${itemClassName}`}
             >
-              <p className="text-white m-0 font-medium">{item}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-white m-0 font-medium">{item.name}</p>
+                {item.targetMuscle.length > 0 && (
+                  <span className="px-2 py-1 bg-white/20 text-white/80 text-xs rounded-full border border-white/30">
+                    {item.targetMuscle[0]}
+                  </span>
+                )}
+              </div>
             </div>
           </AnimatedItem>
         ))}
@@ -198,11 +195,11 @@ const List: React.FC<AnimatedListProps> = ({
       {showGradients && (
         <>
           <div
-            className="absolute top-0 left-0 right-0 h-[50px] bg-linear-to-b from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
+            className="absolute top-0 left-0 right-0 h-[50px] bg-gradient-to-b from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
             style={{ opacity: topGradientOpacity }}
           ></div>
           <div
-            className="absolute bottom-0 left-0 right-0 h-[30%] bg-linear-to-t from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
+            className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
             style={{ opacity: bottomGradientOpacity }}
           ></div>
         </>
