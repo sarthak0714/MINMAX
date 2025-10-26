@@ -7,6 +7,7 @@ import React, {
   type UIEvent,
 } from "react";
 import { motion, useInView } from "motion/react";
+import { CgMathPlus } from "react-icons/cg";
 
 interface AnimatedItemProps {
   children: ReactNode;
@@ -74,6 +75,25 @@ const List: React.FC<AnimatedListProps> = ({
   const [keyboardNav, setKeyboardNav] = useState<boolean>(false);
   const [topGradientOpacity, setTopGradientOpacity] = useState<number>(0);
   const [bottomGradientOpacity, setBottomGradientOpacity] = useState<number>(1);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filteredItems, setFilteredItems] = useState<Exercise[]>(items);
+
+  // Filter items based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredItems(items);
+    } else {
+      const filtered = items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.targetMuscle.some((muscle) =>
+            muscle.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      );
+      setFilteredItems(filtered);
+    }
+    setSelectedIndex(-1); // Reset selection when filtering
+  }, [searchQuery, items]);
 
   const handleScroll = (e: UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } =
@@ -91,16 +111,18 @@ const List: React.FC<AnimatedListProps> = ({
       if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
         e.preventDefault();
         setKeyboardNav(true);
-        setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1));
+        setSelectedIndex((prev) =>
+          Math.min(prev + 1, filteredItems.length - 1)
+        );
       } else if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
         e.preventDefault();
         setKeyboardNav(true);
         setSelectedIndex((prev) => Math.max(prev - 1, 0));
       } else if (e.key === "Enter") {
-        if (selectedIndex >= 0 && selectedIndex < items.length) {
+        if (selectedIndex >= 0 && selectedIndex < filteredItems.length) {
           e.preventDefault();
           if (onItemSelect) {
-            onItemSelect(items[selectedIndex], selectedIndex);
+            onItemSelect(filteredItems[selectedIndex], selectedIndex);
           }
         }
       }
@@ -108,7 +130,7 @@ const List: React.FC<AnimatedListProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [items, selectedIndex, onItemSelect, enableArrowNavigation]);
+  }, [filteredItems, selectedIndex, onItemSelect, enableArrowNavigation]);
 
   useEffect(() => {
     if (!keyboardNav || selectedIndex < 0 || !listRef.current) return;
@@ -141,15 +163,37 @@ const List: React.FC<AnimatedListProps> = ({
     <div
       className={`relative h-[90vh] w-full max-w-2xl ${className}`}
       style={{
-        // Fades out to transparent at the bottom edge
-        maskImage: "linear-gradient(to bottom, black 90%, transparent 100%)",
+        // Fade out to transparent at BOTH the top and bottom edge
+        maskImage:
+          "linear-gradient(to bottom, transparent 0%, black 0%, black 90%, transparent 100%)",
         WebkitMaskImage:
-          "linear-gradient(to bottom, black 90%, transparent 100%)",
+          "linear-gradient(to bottom, transparent 0%, black 0%, black 90%, transparent 100%)",
       }}
     >
+      {/* Search Bar and Add Button */}
+      <div className="flex items-center gap-1 p-4 pb-2 mb-6">
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            placeholder="Search exercises..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-6 pr-4 h-[60px] bg-white/10 backdrop-blur-md border border-white/20 rounded-l-full rounded-r-lg text-white placeholder-white/60 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all duration-200"
+          />
+        </div>
+        <button
+          type="button"
+          aria-label="Add new exercise"
+          className="w-[60px] h-[60px] bg-white/10 backdrop-blur-md border border-white/20 rounded-l-lg rounded-r-full flex items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all duration-200"
+        >
+          <CgMathPlus className="w-6 h-6 text-white" />
+        </button>
+        <hr className="" />
+      </div>
+
       <div
         ref={listRef}
-        className={`h-screen h-max-[80vh] min-h-[300px] overflow-y-auto p-4 ${
+        className={`h-[calc(90vh-120px)] overflow-y-auto p-4 pt-2 relative ${
           displayScrollbar
             ? "[&::-webkit-scrollbar]:w-[8px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-[4px]"
             : "scrollbar-hide"
@@ -158,9 +202,10 @@ const List: React.FC<AnimatedListProps> = ({
         style={{
           scrollbarWidth: displayScrollbar ? "thin" : "none",
           scrollbarColor: "rgba(255,255,255,0.2) transparent",
+          scrollBehavior: "smooth",
         }}
       >
-        {items.map((item, index) => (
+        {filteredItems.map((item, index) => (
           <AnimatedItem
             key={index}
             delay={0.1}
@@ -174,7 +219,7 @@ const List: React.FC<AnimatedListProps> = ({
             }}
           >
             <div
-              className={`p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg transition-all duration-200 ${
+              className={`p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-full transition-all duration-200 ${
                 selectedIndex === index
                   ? "bg-white/20 border-white/40 shadow-lg"
                   : "hover:bg-white/15"
