@@ -6,8 +6,9 @@ import React, {
   type MouseEventHandler,
   type UIEvent,
 } from "react";
-import { motion, useInView } from "motion/react";
+import { motion, useInView, AnimatePresence } from "motion/react";
 import { CgMathPlus } from "react-icons/cg";
+import ExercisePage from "./ExercisePage";
 
 interface AnimatedItemProps {
   children: ReactNode;
@@ -51,6 +52,9 @@ interface Exercise {
 interface AnimatedListProps {
   items?: Exercise[];
   onItemSelect?: (item: Exercise, index: number) => void;
+  onItemUpdate?: (item: Exercise, index: number) => void;
+  onItemDelete?: (index: number) => void;
+  onItemAdd?: (item: Exercise) => void;
   showGradients?: boolean;
   enableArrowNavigation?: boolean;
   className?: string;
@@ -62,6 +66,9 @@ interface AnimatedListProps {
 const List: React.FC<AnimatedListProps> = ({
   items = [],
   onItemSelect,
+  onItemUpdate,
+  onItemDelete,
+  onItemAdd,
   showGradients = true,
   enableArrowNavigation = true,
   className = "",
@@ -77,6 +84,12 @@ const List: React.FC<AnimatedListProps> = ({
   const [bottomGradientOpacity, setBottomGradientOpacity] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredItems, setFilteredItems] = useState<Exercise[]>(items);
+  const [showExercisePage, setShowExercisePage] = useState<boolean>(false);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null
+  );
+  const [selectedExerciseIndex, setSelectedExerciseIndex] =
+    useState<number>(-1);
 
   // Filter items based on search query
   useEffect(() => {
@@ -159,97 +172,162 @@ const List: React.FC<AnimatedListProps> = ({
     setKeyboardNav(false);
   }, [selectedIndex, keyboardNav]);
 
-  return (
-    <div
-      className={`relative h-[90vh] w-full max-w-2xl ${className}`}
-      style={{
-        // Fade out to transparent at BOTH the top and bottom edge
-        maskImage:
-          "linear-gradient(to bottom, transparent 0%, black 0%, black 90%, transparent 100%)",
-        WebkitMaskImage:
-          "linear-gradient(to bottom, transparent 0%, black 0%, black 90%, transparent 100%)",
-      }}
-    >
-      {/* Search Bar and Add Button */}
-      <div className="flex items-center gap-1 p-4 pb-2 mb-6">
-        <div className="flex-1 relative">
-          <input
-            type="text"
-            placeholder="Search exercises..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-6 pr-4 h-[60px] bg-white/10 backdrop-blur-md border border-white/20 rounded-l-full rounded-r-lg text-white placeholder-white/60 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all duration-200"
-          />
-        </div>
-        <button
-          type="button"
-          aria-label="Add new exercise"
-          className="w-[60px] h-[60px] bg-white/10 backdrop-blur-md border border-white/20 rounded-l-lg rounded-r-full flex items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all duration-200"
-        >
-          <CgMathPlus className="w-6 h-6 text-white" />
-        </button>
-        <hr className="" />
-      </div>
+  const handleExerciseClick = (exercise: Exercise, index: number) => {
+    setSelectedExercise(exercise);
+    setSelectedExerciseIndex(index);
+    setShowExercisePage(true);
+    if (onItemSelect) {
+      onItemSelect(exercise, index);
+    }
+  };
 
-      <div
-        ref={listRef}
-        className={`h-[calc(90vh-120px)] overflow-y-auto p-4 pt-2 relative ${
-          displayScrollbar
-            ? "[&::-webkit-scrollbar]:w-[8px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-[4px]"
-            : "scrollbar-hide"
-        }`}
-        onScroll={handleScroll}
-        style={{
-          scrollbarWidth: displayScrollbar ? "thin" : "none",
-          scrollbarColor: "rgba(255,255,255,0.2) transparent",
-          scrollBehavior: "smooth",
-        }}
-      >
-        {filteredItems.map((item, index) => (
-          <AnimatedItem
-            key={index}
-            delay={0.1}
-            index={index}
-            onMouseEnter={() => setSelectedIndex(index)}
-            onClick={() => {
-              setSelectedIndex(index);
-              if (onItemSelect) {
-                onItemSelect(item, index);
-              }
+  const handleExerciseSave = (updatedExercise: Exercise) => {
+    if (onItemUpdate && selectedExerciseIndex >= 0) {
+      onItemUpdate(updatedExercise, selectedExerciseIndex);
+    }
+    setShowExercisePage(false);
+  };
+
+  const handleExerciseDelete = () => {
+    if (onItemDelete && selectedExerciseIndex >= 0) {
+      onItemDelete(selectedExerciseIndex);
+    }
+    setShowExercisePage(false);
+  };
+
+  const handleBackToList = () => {
+    setShowExercisePage(false);
+    setSelectedExercise(null);
+    setSelectedExerciseIndex(-1);
+  };
+
+  const handleAddExercise = () => {
+    const newExercise: Exercise = {
+      name: "New Exercise",
+      targetMuscle: ["Muscle Group"],
+      meta: ["Equipment", "Difficulty"],
+    };
+
+    if (onItemAdd) {
+      onItemAdd(newExercise);
+    }
+
+    // Open the new exercise for editing
+    setSelectedExercise(newExercise);
+    setSelectedExerciseIndex(items.length); // Will be the last item
+    setShowExercisePage(true);
+  };
+
+  return (
+    <AnimatePresence mode="wait">
+      {showExercisePage && selectedExercise ? (
+        <ExercisePage
+          key="exercise-page"
+          exercise={selectedExercise}
+          onBack={handleBackToList}
+          onSave={handleExerciseSave}
+          onDelete={onItemDelete ? handleExerciseDelete : undefined}
+        />
+      ) : (
+        <motion.div
+          key="exercise-list"
+          initial={{ opacity: 0, x: -300 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -300 }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+        >
+          <div
+            className={`relative h-[90vh] w-full max-w-2xl ${className}`}
+            style={{
+              // Fade out to transparent at BOTH the top and bottom edge
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, black 0%, black 90%, transparent 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, black 0%, black 90%, transparent 100%)",
             }}
           >
-            <div
-              className={`p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-full transition-all duration-200 ${
-                selectedIndex === index
-                  ? "bg-white/20 border-white/40 shadow-lg"
-                  : "hover:bg-white/15"
-              } ${itemClassName}`}
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-white m-0 font-medium">{item.name}</p>
-                {item.targetMuscle.length > 0 && (
-                  <span className="px-2 py-1 bg-white/20 text-white/80 text-xs rounded-full border border-white/30">
-                    {item.targetMuscle[0]}
-                  </span>
-                )}
+            {/* Search Bar and Add Button */}
+            <div className="flex items-center gap-1 p-4 pb-2 mb-6">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Search exercises..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-6 pr-4 h-[60px] bg-white/10 backdrop-blur-md border border-white/20 rounded-l-full rounded-r-lg text-white placeholder-white/60 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all duration-200"
+                />
               </div>
+              <button
+                type="button"
+                aria-label="Add new exercise"
+                onClick={handleAddExercise}
+                className="w-[60px] h-[60px] bg-white/10 backdrop-blur-md border border-white/20 rounded-l-lg rounded-r-full flex items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all duration-200"
+              >
+                <CgMathPlus className="w-6 h-6 text-white" />
+              </button>
+              <hr className="" />
             </div>
-          </AnimatedItem>
-        ))}
-      </div>
-      {showGradients && (
-        <>
-          <div
-            className="absolute top-0 left-0 right-0 h-[50px] bg-gradient-to-b from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
-            style={{ opacity: topGradientOpacity }}
-          ></div>
-          <div
-            className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
-            style={{ opacity: bottomGradientOpacity }}
-          ></div>
-        </>
+
+            <div
+              ref={listRef}
+              className={`h-[calc(90vh-120px)] overflow-y-auto p-4 pt-2 relative ${
+                displayScrollbar
+                  ? "[&::-webkit-scrollbar]:w-[8px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-[4px]"
+                  : "scrollbar-hide"
+              }`}
+              onScroll={handleScroll}
+              style={{
+                scrollbarWidth: displayScrollbar ? "thin" : "none",
+                scrollbarColor: "rgba(255,255,255,0.2) transparent",
+                scrollBehavior: "smooth",
+              }}
+            >
+              {filteredItems.map((item, index) => (
+                <AnimatedItem
+                  key={index}
+                  delay={0.1}
+                  index={index}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  onClick={() => {
+                    setSelectedIndex(index);
+                    handleExerciseClick(item, index);
+                  }}
+                >
+                  <div
+                    className={`p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-full transition-all duration-200 ${
+                      selectedIndex === index
+                        ? "bg-white/20 border-white/40 shadow-lg"
+                        : "hover:bg-white/15"
+                    } ${itemClassName}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-white m-0 font-medium">{item.name}</p>
+                      {item.targetMuscle.length > 0 && (
+                        <span className="px-2 py-1 bg-white/20 text-white/80 text-xs rounded-full border border-white/30">
+                          {item.targetMuscle[0]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </AnimatedItem>
+              ))}
+            </div>
+            {showGradients && (
+              <>
+                <div
+                  className="absolute top-0 left-0 right-0 h-[50px] bg-gradient-to-b from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
+                  style={{ opacity: topGradientOpacity }}
+                ></div>
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
+                  style={{ opacity: bottomGradientOpacity }}
+                ></div>
+              </>
+            )}
+          </div>
+        </motion.div>
       )}
-    </div>
+    </AnimatePresence>
   );
 };
 
