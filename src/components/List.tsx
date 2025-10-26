@@ -315,11 +315,11 @@ const List: React.FC<AnimatedListProps> = ({
             {showGradients && (
               <>
                 <div
-                  className="absolute top-0 left-0 right-0 h-[50px] bg-gradient-to-b from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
+                  className="absolute top-0 left-0 right-0  bg-linear-to-b from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
                   style={{ opacity: topGradientOpacity }}
                 ></div>
                 <div
-                  className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
+                  className="absolute bottom-0 left-0 right-0 h-[30%] bg-linear-to-t from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
                   style={{ opacity: bottomGradientOpacity }}
                 ></div>
               </>
