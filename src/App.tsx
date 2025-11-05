@@ -4,6 +4,7 @@ import { RiChatAiFill } from "react-icons/ri";
 import Dock from "./components/Dock";
 import BackgroundAura from "./components/BackgroundGrad";
 import "./App.css";
+import WorkoutsPage from "./components/WorkoutsPage";
 import List from "./components/List";
 import exersieItems from "./items/exersise.json";
 
@@ -47,14 +48,13 @@ const App = () => {
     <div className="relative min-h-screen flex items-center justify-center bg-black overflow-hidden">
       <div className="relative p-0 m=0 aspect-[9/19.5] h-screen max-h-[844px] overflow-hidden flex flex-col justify-end">
         <div className="flex-1 relative overflow-hidden">
-          {active === "Workouts" ? (
-            // scrollable area inside the phone view
+          {active === "Today" ? (
             <div className="h-full overflow-y-auto no-scrollbar">
-              <List
-                items={exersieItems}
-                displayScrollbar={false}
-                showGradients={true}
-              />
+              <WorkoutsPage />
+            </div>
+          ) : active === "Workouts" ? (
+            <div className="h-full overflow-y-auto no-scrollbar">
+              <List items={exersieItems} displayScrollbar={false} showGradients={true} />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-white opacity-70">
