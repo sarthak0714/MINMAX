@@ -1,5 +1,3 @@
-import { MongoDataApi } from "./mongoDataApi";
-
 export type Exercise = {
   _id: string;
   name: string;
@@ -44,104 +42,88 @@ export type Workout = {
   metrics?: WorkoutMetrics;
 };
 
-const APP_ID = import.meta.env.VITE_MONGO_APP_ID as string;
-const DATA_SOURCE =
-  (import.meta.env.VITE_MONGO_DATA_SOURCE as string) || "Cluster0";
-const BASE_URL =
-  (import.meta.env.VITE_MONGO_BASE_URL as string) ||
-  "https://data.mongodb-api.com/app";
-const DATABASE = "minmax";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001/api";
 
-function buildClientWithAccessToken(accessToken: string) {
-  return new MongoDataApi({ appId: APP_ID, baseUrl: BASE_URL, accessToken });
+export async function listExercises(): Promise<Exercise[]> {
+  const res = await fetch(`${API_BASE}/exercises`);
+  if (!res.ok) throw new Error(`listExercises failed: ${res.status}`);
+  const { documents } = await res.json();
+  return documents as Exercise[];
 }
 
-function computeMetrics(exercises: WorkoutExercise[]): WorkoutMetrics {
-  let totalVolume = 0;
-  let numSets = 0;
-  for (const ex of exercises) {
-    for (const s of ex.sets) {
-      numSets += 1;
-      if (
-        s.weight != null &&
-        Number.isFinite(s.weight) &&
-        Number.isFinite(s.reps)
-      ) {
-        totalVolume += s.weight * s.reps;
-      }
-    }
-  }
-  return { totalVolume, numSets };
-}
-
-export async function listExercises(accessToken: string): Promise<Exercise[]> {
-  const client = buildClientWithAccessToken(accessToken);
-  const { documents } = await client.find<Exercise>({
-    dataSource: DATA_SOURCE,
-    database: DATABASE,
-    collection: "exercises",
-    sort: { name: 1 },
-    limit: 500,
+export async function createExercise(
+  exercise: Omit<Exercise, "_id" | "slug" | "createdAt">
+): Promise<Exercise> {
+  const res = await fetch(`${API_BASE}/exercises`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(exercise),
   });
-  return documents;
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || `createExercise failed: ${res.status}`);
+  }
+  const { document } = await res.json();
+  return document as Exercise;
+}
+
+export async function updateExercise(
+  _id: string,
+  _exercise: Partial<Omit<Exercise, "_id" | "slug" | "createdAt">>
+): Promise<Exercise> {
+  // Note: Update endpoint not yet implemented in backend
+  // For now, we'll need to add it or handle updates differently
+  throw new Error("updateExercise not yet implemented");
 }
 
 export async function createWorkout(
-  accessToken: string,
   workout: Omit<Workout, "_id" | "createdAt" | "updatedAt" | "metrics">
 ): Promise<string> {
-  const client = buildClientWithAccessToken(accessToken);
-  const now = new Date().toISOString();
-  const metrics = computeMetrics(workout.exercises);
-  const { insertedId } = await client.insertOne<Workout>({
-    dataSource: DATA_SOURCE,
-    database: DATABASE,
-    collection: "workouts",
-    document: { ...workout, createdAt: now, updatedAt: now, metrics },
+  const res = await fetch(`${API_BASE}/workouts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(workout),
   });
-  return insertedId;
+  if (!res.ok) throw new Error(`createWorkout failed: ${res.status}`);
+  const { insertedId } = await res.json();
+  return insertedId as string;
 }
 
 export async function getWorkoutsByDate(
-  accessToken: string,
   userId: string,
   dateIso: string
 ): Promise<Workout[]> {
-  const client = buildClientWithAccessToken(accessToken);
-  const { documents } = await client.find<Workout>({
-    dataSource: DATA_SOURCE,
-    database: DATABASE,
-    collection: "workouts",
-    filter: {
-      userId,
-      date: { $gte: dateIso.slice(0, 10), $lte: dateIso.slice(0, 10) },
-    },
-    sort: { date: -1 },
-    limit: 20,
-  } as any);
-  return documents;
+  const u = new URL(`${API_BASE}/workouts`, window.location.origin);
+  u.searchParams.set("userId", userId);
+  u.searchParams.set("date", dateIso.slice(0, 10));
+  const res = await fetch(u.toString());
+  if (!res.ok) throw new Error(`getWorkoutsByDate failed: ${res.status}`);
+  const { documents } = await res.json();
+  return documents as Workout[];
+}
+
+export async function getAllWorkouts(userId: string): Promise<Workout[]> {
+  const u = new URL(`${API_BASE}/workouts`, window.location.origin);
+  u.searchParams.set("userId", userId);
+  const res = await fetch(u.toString());
+  if (!res.ok) throw new Error(`getAllWorkouts failed: ${res.status}`);
+  const { documents } = await res.json();
+  return documents as Workout[];
 }
 
 export async function updateWorkout(
-  accessToken: string,
   id: string,
-  update: Partial<Pick<Workout, "title" | "notes" | "exercises" | "metrics">>
-): Promise<void> {
-  const client = buildClientWithAccessToken(accessToken);
-  const toSet: Record<string, unknown> = {
-    updatedAt: new Date().toISOString(),
-  };
-  if (update.title !== undefined) toSet.title = update.title;
-  if (update.notes !== undefined) toSet.notes = update.notes;
-  if (update.exercises !== undefined) {
-    toSet.exercises = update.exercises;
-    toSet.metrics = computeMetrics(update.exercises);
-  }
-  await client.updateOne({
-    dataSource: DATA_SOURCE,
-    database: DATABASE,
-    collection: "workouts",
-    filter: { _id: { $oid: id } },
-    update: { $set: toSet },
+  workout: Partial<Omit<Workout, "_id" | "createdAt" | "updatedAt" | "metrics">>
+): Promise<Workout> {
+  const res = await fetch(`${API_BASE}/workouts/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(workout),
   });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || `updateWorkout failed: ${res.status}`);
+  }
+  const { document } = await res.json();
+  return document as Workout;
 }

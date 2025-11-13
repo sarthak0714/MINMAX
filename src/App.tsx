@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaHeartbeat, FaChartLine, FaRunning } from "react-icons/fa";
 import { RiChatAiFill } from "react-icons/ri";
 import Dock from "./components/Dock";
@@ -6,10 +6,62 @@ import BackgroundAura from "./components/BackgroundGrad";
 import "./App.css";
 import WorkoutsPage from "./components/WorkoutsPage";
 import List from "./components/List";
-import exersieItems from "./items/exersise.json";
+import { listExercises, createExercise, type Exercise } from "./lib/workouts";
 
 const App = () => {
   const [active, setActive] = useState("Progress");
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercisesLoading, setExercisesLoading] = useState(true);
+  const [exercisesError, setExercisesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadExercises() {
+      try {
+        setExercisesLoading(true);
+        const exs = await listExercises();
+        setExercises(exs);
+        setExercisesError(null);
+      } catch (err) {
+        setExercisesError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setExercisesLoading(false);
+      }
+    }
+    if (active === "Workouts") {
+      loadExercises();
+    }
+  }, [active]);
+
+  const handleExerciseAdd = async (exercise: Exercise) => {
+    try {
+      const created = await createExercise({
+        name: exercise.name,
+        targetMuscle: exercise.targetMuscle,
+        meta: exercise.meta,
+      });
+      setExercises((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (err) {
+      console.error("Failed to create exercise:", err);
+      // Still add to local state for UI, but it won't persist
+      setExercises((prev) => [...prev, exercise].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+  };
+
+  const handleExerciseUpdate = async (exercise: Exercise, index: number) => {
+    // For now, just update local state
+    // TODO: Implement updateExercise API endpoint
+    setExercises((prev) => {
+      const updated = [...prev];
+      updated[index] = exercise;
+      return updated.sort((a, b) => a.name.localeCompare(b.name));
+    });
+  };
+
+  const handleExerciseDelete = (index: number) => {
+    // For now, just update local state
+    // TODO: Implement deleteExercise API endpoint
+    setExercises((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const items = [
     {
@@ -54,7 +106,24 @@ const App = () => {
             </div>
           ) : active === "Workouts" ? (
             <div className="h-full overflow-y-auto no-scrollbar">
-              <List items={exersieItems} displayScrollbar={false} showGradients={true} />
+              {exercisesLoading ? (
+                <div className="flex items-center justify-center h-full text-white/60">
+                  Loading exercises...
+                </div>
+              ) : exercisesError ? (
+                <div className="flex items-center justify-center h-full text-red-400">
+                  Error: {exercisesError}
+                </div>
+              ) : (
+                <List
+                  items={exercises}
+                  displayScrollbar={false}
+                  showGradients={true}
+                  onItemAdd={handleExerciseAdd}
+                  onItemUpdate={handleExerciseUpdate}
+                  onItemDelete={handleExerciseDelete}
+                />
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-white opacity-70">

@@ -9,6 +9,7 @@ import React, {
 import { motion, useInView, AnimatePresence } from "motion/react";
 import { CgMathPlus } from "react-icons/cg";
 import ExercisePage from "./ExercisePage";
+import type { Exercise } from "../lib/workouts";
 
 interface AnimatedItemProps {
   children: ReactNode;
@@ -42,12 +43,6 @@ const AnimatedItem: React.FC<AnimatedItemProps> = ({
     </motion.div>
   );
 };
-
-interface Exercise {
-  name: string;
-  targetMuscle: string[];
-  meta: string[];
-}
 
 interface AnimatedListProps {
   items?: Exercise[];

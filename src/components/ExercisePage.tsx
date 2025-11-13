@@ -2,12 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { IoArrowBack, IoCheckmark, IoClose } from "react-icons/io5";
 import { MdModeEdit } from "react-icons/md";
-
-interface Exercise {
-  name: string;
-  targetMuscle: string[];
-  meta: string[];
-}
+import type { Exercise } from "../lib/workouts";
 
 interface ExercisePageProps {
   exercise: Exercise;

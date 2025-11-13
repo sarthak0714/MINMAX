@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Workout, WorkoutExercise, WorkoutSet } from "../lib/workouts";
 import { FaFeather, FaFire, FaTimes } from "react-icons/fa";
@@ -15,6 +15,7 @@ type Props = {
   dateISO: string;
   userId: string;
   exerciseOptions: ExerciseOption[];
+  workout?: Workout; // If provided, we're editing
   onSave: (
     workout: Omit<Workout, "_id" | "createdAt" | "updatedAt" | "metrics">
   ) => void;
@@ -38,6 +39,7 @@ export default function AddWorkoutDrawer({
   dateISO,
   userId,
   exerciseOptions,
+  workout,
   onSave,
 }: Props) {
   const [title, setTitle] = useState<string>("");
@@ -45,6 +47,26 @@ export default function AddWorkoutDrawer({
   const [search, setSearch] = useState<string>("");
   const [items, setItems] = useState<WorkoutExercise[]>([]);
   const [dateValue, setDateValue] = useState<string>(dateISO);
+
+  // Reset form when drawer opens/closes or workout changes
+  useEffect(() => {
+    if (open) {
+      if (workout) {
+        // Editing mode: populate with existing workout data
+        setTitle(workout.title || "");
+        setNote(workout.notes || "");
+        setDateValue(workout.date.slice(0, 10));
+        setItems(workout.exercises || []);
+      } else {
+        // New workout mode: reset to defaults
+        setDateValue(dateISO);
+        setTitle("");
+        setNote("");
+        setItems([]);
+      }
+      setSearch("");
+    }
+  }, [open, dateISO, workout]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -144,7 +166,9 @@ export default function AddWorkoutDrawer({
             transition={{ type: "spring", stiffness: 260, damping: 30 }}
           >
             <div className="flex items-center justify-between mb-4">
-              <div className="text-white font-medium">Log Workout</div>
+              <div className="text-white font-medium">
+                {workout ? "Edit Workout" : "Log Workout"}
+              </div>
               <button
                 onClick={onClose}
                 className="px-3 py-1 rounded-full bg-white/10 text-white/80 border border-white/20"
@@ -283,7 +307,7 @@ export default function AddWorkoutDrawer({
                 disabled={!items.length}
                 className="flex-1 h-11 rounded-full bg-white/20 border border-white/40 text-white disabled:opacity-50"
               >
-                Save workout
+                {workout ? "Update workout" : "Save workout"}
               </button>
               <button
                 onClick={onClose}

@@ -12,7 +12,11 @@ type Props = {
 };
 
 function dayISO(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  // Use local date, not UTC, to avoid timezone issues
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function getMonthMatrix(base: Date): Date[] {
@@ -46,7 +50,8 @@ export default function VolumeBubbles({
   onModeChange,
   className = "",
 }: Props) {
-  const today = useMemo(() => new Date(), []);
+  // Recalculate today on each render to ensure it's current
+  const today = new Date();
 
   const volumeByDay = useMemo(() => {
     const map = new Map<string, { volume: number; sets: number }>();
