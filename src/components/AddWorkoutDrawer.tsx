@@ -81,7 +81,10 @@ export default function AddWorkoutDrawer({
         exerciseId: opt._id,
         name: opt.name,
         slug: opt.slug,
-        sets: [newSet(0), newSet(1), newSet(2)],
+        sets: [
+          { ...newSet(0), isWarmup: true }, // First set is warmup
+          newSet(1), // Second set is main
+        ],
       },
     ]);
   };

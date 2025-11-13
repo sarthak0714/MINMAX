@@ -6,13 +6,21 @@ import BackgroundAura from "./components/BackgroundGrad";
 import "./App.css";
 import WorkoutsPage from "./components/WorkoutsPage";
 import List from "./components/List";
+import AuthScreen from "./components/AuthScreen";
 import { listExercises, createExercise, type Exercise } from "./lib/workouts";
+import { checkAuth } from "./lib/auth";
 
 const App = () => {
+  const [authenticated, setAuthenticated] = useState(false);
   const [active, setActive] = useState("Progress");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(true);
   const [exercisesError, setExercisesError] = useState<string | null>(null);
+
+  // Check authentication on mount
+  useEffect(() => {
+    setAuthenticated(checkAuth());
+  }, []);
 
   useEffect(() => {
     async function loadExercises() {
@@ -39,11 +47,15 @@ const App = () => {
         targetMuscle: exercise.targetMuscle,
         meta: exercise.meta,
       });
-      setExercises((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setExercises((prev) =>
+        [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
+      );
     } catch (err) {
       console.error("Failed to create exercise:", err);
       // Still add to local state for UI, but it won't persist
-      setExercises((prev) => [...prev, exercise].sort((a, b) => a.name.localeCompare(b.name)));
+      setExercises((prev) =>
+        [...prev, exercise].sort((a, b) => a.name.localeCompare(b.name))
+      );
     }
   };
 
@@ -95,6 +107,11 @@ const App = () => {
   ];
 
   const activeColor = items.find((i) => i.active)?.color?.light ?? "#ffffff";
+
+  // Show auth screen if not authenticated
+  if (!authenticated) {
+    return <AuthScreen onAuthenticated={() => setAuthenticated(true)} />;
+  }
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-black overflow-hidden">
