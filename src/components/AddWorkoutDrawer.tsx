@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import  { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Workout, WorkoutExercise, WorkoutSet } from "../lib/workouts";
 import { FaFeather, FaFire, FaTimes } from "react-icons/fa";

@@ -198,6 +198,9 @@ const List: React.FC<AnimatedListProps> = ({
 
   const handleAddExercise = () => {
     const newExercise: Exercise = {
+      _id: new Date().toISOString(),
+      slug: "new-exercise",
+      createdAt: new Date().toISOString(),
       name: "New Exercise",
       targetMuscle: ["Muscle Group"],
       meta: ["Equipment", "Difficulty"],

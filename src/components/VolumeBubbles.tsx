@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Workout } from "../lib/workouts";
 
