@@ -33,7 +33,6 @@ export default function AuthScreen({ onAuthenticated }: Props) {
     <div className="relative min-h-screen flex items-center justify-center bg-black overflow-hidden">
       <div className="relative p-0 m-0 aspect-[9/19.5] h-screen max-h-[844px] overflow-hidden flex flex-col items-center justify-center">
         <div className="w-full max-w-sm px-6">
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <input
@@ -65,4 +64,3 @@ export default function AuthScreen({ onAuthenticated }: Props) {
     </div>
   );
 }
-
