@@ -167,6 +167,13 @@ export default function AddWorkoutDrawer({
             animate={{ x: 0 }}
             exit={{ x: 400 }}
             transition={{ type: "spring", stiffness: 260, damping: 30 }}
+            style={{
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+              WebkitTransform: 'translateZ(0)',
+              WebkitBackfaceVisibility: 'hidden',
+              backfaceVisibility: 'hidden',
+            }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="text-white font-medium">

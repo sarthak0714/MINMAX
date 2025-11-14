@@ -48,3 +48,31 @@ body::-webkit-scrollbar {
   width: 0 !important;
   height: 0 !important;
 }
+
+/* Mobile gradient optimization */
+@media (max-width: 768px) {
+  /* Reduce blur intensity on mobile for better performance */
+  [class*="blur-"] {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Hardware acceleration for gradients */
+[class*="gradient"] {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: auto;
+}
+
+/* Smooth gradient rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

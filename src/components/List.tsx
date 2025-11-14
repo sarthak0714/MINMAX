@@ -313,12 +313,24 @@ const List: React.FC<AnimatedListProps> = ({
             {showGradients && (
               <>
                 <div
-                  className="absolute top-0 left-0 right-0  bg-linear-to-b from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
-                  style={{ opacity: topGradientOpacity }}
+                  className="absolute top-0 left-0 right-0 h-[30%] bg-gradient-to-b from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
+                  style={{ 
+                    opacity: topGradientOpacity,
+                    transform: 'translateZ(0)',
+                    willChange: 'opacity',
+                    WebkitTransform: 'translateZ(0)',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
                 ></div>
                 <div
-                  className="absolute bottom-0 left-0 right-0 h-[30%] bg-linear-to-t from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
-                  style={{ opacity: bottomGradientOpacity }}
+                  className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/50 to-transparent pointer-events-none transition-opacity duration-300 ease"
+                  style={{ 
+                    opacity: bottomGradientOpacity,
+                    transform: 'translateZ(0)',
+                    willChange: 'opacity',
+                    WebkitTransform: 'translateZ(0)',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
                 ></div>
               </>
             )}

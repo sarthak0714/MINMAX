@@ -120,6 +120,11 @@ export default function VolumeBubbles({
               background: active
                 ? "linear-gradient(135deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.10) 100%)"
                 : "transparent",
+              transform: 'translateZ(0)',
+              willChange: 'background',
+              WebkitTransform: 'translateZ(0)',
+              WebkitBackfaceVisibility: 'hidden',
+              backfaceVisibility: 'hidden',
             }}
           >
             <span className="text-[10px] text-white/90 font-bold select-none">

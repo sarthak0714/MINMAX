@@ -40,10 +40,17 @@ const BackgroundGrad: React.FC<BackgroundAuraProps> = ({ color, keyId }) => {
             ease: [0.4, 0, 0.2, 1],
           },
         }}
-        className="absolute top-[-50%] left-1/2 -translate-x-1/2 w-[200vw] h-[200vw] rounded-full blur-[160px] pointer-events-none"
+        className="absolute top-[-50%] left-1/2 w-[200vw] h-[200vw] rounded-full blur-[160px] pointer-events-none"
         style={{
           background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
           opacity: 0.9,
+          transform: 'translate3d(-50%, 0, 0)',
+          willChange: 'opacity, background',
+          WebkitTransform: 'translate3d(-50%, 0, 0)',
+          WebkitBackfaceVisibility: 'hidden',
+          backfaceVisibility: 'hidden',
+          WebkitFontSmoothing: 'antialiased',
+          imageRendering: 'high-quality',
         }}
       />
     </AnimatePresence>
