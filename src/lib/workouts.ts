@@ -44,8 +44,9 @@ export type Workout = {
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001/api";
 
-export async function listExercises(): Promise<Exercise[]> {
-  const res = await fetch(`${API_BASE}/exercises`);
+export async function listExercises(bustCache = false): Promise<Exercise[]> {
+  const url = `${API_BASE}/exercises${bustCache ? `?_t=${Date.now()}` : ''}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`listExercises failed: ${res.status}`);
   const { documents } = await res.json();
   return documents as Exercise[];

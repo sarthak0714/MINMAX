@@ -1,7 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import mongoose from 'mongoose';
-import { connectMongo } from '../_db.js';
-import { Workout } from '../models/Workout.js';
+import mongoose from "mongoose";
+import { connectMongo } from "../_db.js";
+import { Workout } from "../models/Workout.js";
 
 function computeMetrics(exercises: any[]) {
   let totalVolume = 0;
@@ -9,7 +8,7 @@ function computeMetrics(exercises: any[]) {
   for (const ex of exercises || []) {
     for (const s of ex.sets || []) {
       numSets += 1;
-      if (s && typeof s.weight === 'number' && typeof s.reps === 'number') {
+      if (s && typeof s.weight === "number" && typeof s.reps === "number") {
         totalVolume += s.weight * s.reps;
       }
     }
@@ -17,18 +16,33 @@ function computeMetrics(exercises: any[]) {
   return { totalVolume, numSets };
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(request: Request) {
   try {
-    if (req.method !== 'PATCH') {
-      res.setHeader('Allow', 'PATCH');
-      return res.status(405).json({ error: 'Method Not Allowed' });
+    if (request.method !== "PATCH") {
+      return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+        status: 405,
+        headers: {
+          "Content-Type": "application/json",
+          Allow: "PATCH",
+        },
+      });
     }
+
     await connectMongo();
-    const { id } = req.query as { id: string };
+
+    // Extract id from URL path
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split("/");
+    const id = pathParts[pathParts.length - 1];
+
     if (!id || !mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ error: 'Invalid id' });
+      return new Response(JSON.stringify({ error: "Invalid id" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-    const body = req.body || {};
+
+    const body = await request.json();
     const toSet: any = { updatedAt: new Date() };
     if (body.title !== undefined) toSet.title = body.title;
     if (body.notes !== undefined) toSet.notes = body.notes;
@@ -36,11 +50,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       toSet.exercises = body.exercises;
       toSet.metrics = computeMetrics(body.exercises);
     }
+
     const result = await Workout.updateOne({ _id: id }, { $set: toSet }).exec();
-    return res.status(200).json({ matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
+
+    return new Response(
+      JSON.stringify({
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
   } catch (err: any) {
-    return res.status(500).json({ error: 'Server Error', message: err?.message });
+    return new Response(
+      JSON.stringify({ error: "Server Error", message: err?.message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 }
-
-

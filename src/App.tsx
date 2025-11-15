@@ -28,7 +28,7 @@ const App = () => {
     async function loadExercises() {
       // Only load once
       if (exercisesLoaded) return;
-      
+
       try {
         setExercisesLoading(true);
         const exs = await listExercises();
@@ -56,6 +56,9 @@ const App = () => {
       setExercises((prev) =>
         [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
       );
+      // Force reload with cache bust to ensure fresh data
+      const exs = await listExercises(true);
+      setExercises(exs);
     } catch (err) {
       console.error("Failed to create exercise:", err);
       // Still add to local state for UI, but it won't persist

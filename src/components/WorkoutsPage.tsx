@@ -162,6 +162,13 @@ export default function WorkoutsPage() {
       // Reload all workouts to update calendar and today's list
       const allWorkouts = await getAllWorkouts(USER_ID);
       setWorkouts(allWorkouts);
+
+      // Refresh exercises list in case new ones were added
+      const exs = await listExercises(true);
+      setExercises(
+        exs.map((e) => ({ _id: e._id, name: e.name, slug: e.slug }))
+      );
+
       setEditingWorkout(null);
       setError(null);
     } catch (e) {
@@ -365,7 +372,7 @@ export default function WorkoutsPage() {
         workout={editingWorkout || undefined}
         onSave={handleSaved}
       />
-      
+
       {isLoading && <LoadingSkeleton />}
     </div>
   );

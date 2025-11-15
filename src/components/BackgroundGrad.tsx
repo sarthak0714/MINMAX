@@ -6,55 +6,57 @@ interface BackgroundAuraProps {
   keyId: string;
 }
 
-const BackgroundGrad: React.FC<BackgroundAuraProps> = memo(({ color, keyId }) => {
-  // 🎨 Random offset per change for natural glow variation
-  const { x, y } = useMemo(() => {
-    const xOffset = 40 + Math.random() * 20; // 40–60%
-    const yOffset = 50 + Math.random() * 15; // 50–65%
-    return { x: xOffset, y: yOffset };
-  }, [keyId]);
+const BackgroundGrad: React.FC<BackgroundAuraProps> = memo(
+  ({ color, keyId }) => {
+    // 🎨 Random offset per change for natural glow variation
+    const { x, y } = useMemo(() => {
+      const xOffset = 40 + Math.random() * 20; // 40–60%
+      const yOffset = 50 + Math.random() * 15; // 50–65%
+      return { x: xOffset, y: yOffset };
+    }, [keyId]);
 
-  return (
-    <AnimatePresence mode="popLayout">
-      <motion.div
-        key={keyId}
-        initial={{
-          opacity: 0,
-          background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
-        }}
-        animate={{
-          opacity: 0.9,
-          background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
-        }}
-        exit={{
-          opacity: 0,
-          background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
-        }}
-        transition={{
-          opacity: {
-            duration: 1.2,
-            ease: [0.4, 0, 0.2, 1],
-          },
-          background: {
-            duration: 1.2,
-            ease: [0.4, 0, 0.2, 1],
-          },
-        }}
-        className="absolute top-[-50%] left-1/2 w-[200vmax] h-[200vmax] rounded-full blur-[160px] pointer-events-none"
-        style={{
-          background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
-          opacity: 0.9,
-          transform: "translate3d(-50%, 0, 0)",
-          willChange: "opacity, background",
-          WebkitTransform: "translate3d(-50%, 0, 0)",
-          WebkitBackfaceVisibility: "hidden",
-          backfaceVisibility: "hidden",
-          WebkitFontSmoothing: "antialiased",
-          imageRendering: "auto",
-        }}
-      />
-    </AnimatePresence>
-  );
-});
+    return (
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={keyId}
+          initial={{
+            opacity: 0,
+            background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
+          }}
+          animate={{
+            opacity: 0.9,
+            background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
+          }}
+          exit={{
+            opacity: 0,
+            background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
+          }}
+          transition={{
+            opacity: {
+              duration: 1.2,
+              ease: [0.4, 0, 0.2, 1],
+            },
+            background: {
+              duration: 1.2,
+              ease: [0.4, 0, 0.2, 1],
+            },
+          }}
+          className="absolute top-[-50%] left-1/2 w-[200vmax] h-[200vmax] rounded-full blur-[160px] pointer-events-none"
+          style={{
+            background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
+            opacity: 0.9,
+            transform: "translate3d(-50%, 0, 0)",
+            willChange: "opacity, background",
+            WebkitTransform: "translate3d(-50%, 0, 0)",
+            WebkitBackfaceVisibility: "hidden",
+            backfaceVisibility: "hidden",
+            WebkitFontSmoothing: "antialiased",
+            imageRendering: "auto",
+          }}
+        />
+      </AnimatePresence>
+    );
+  }
+);
 
 export default BackgroundGrad;
