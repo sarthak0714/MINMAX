@@ -1,4 +1,4 @@
-import  { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Workout, WorkoutExercise, WorkoutSet } from "../lib/workouts";
 import { FaFeather, FaFire, FaTimes } from "react-icons/fa";
@@ -168,11 +168,11 @@ export default function AddWorkoutDrawer({
             exit={{ x: 400 }}
             transition={{ type: "spring", stiffness: 260, damping: 30 }}
             style={{
-              transform: 'translateZ(0)',
-              willChange: 'transform',
-              WebkitTransform: 'translateZ(0)',
-              WebkitBackfaceVisibility: 'hidden',
-              backfaceVisibility: 'hidden',
+              transform: "translateZ(0)",
+              willChange: "transform",
+              WebkitTransform: "translateZ(0)",
+              WebkitBackfaceVisibility: "hidden",
+              backfaceVisibility: "hidden",
             }}
           >
             <div className="flex items-center justify-between mb-4">

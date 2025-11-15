@@ -80,7 +80,7 @@ const ExercisePage: React.FC<ExercisePageProps> = ({
         ease: [0.4, 0.0, 0.2, 1],
         scale: { duration: 0.3 },
       }}
-      className="h-[90vh] w-full max-w-4xl mx-auto p-6 overflow-y-auto"
+      className="h-[calc(100dvh-80px)] w-full max-w-4xl mx-auto p-6 overflow-y-auto"
       style={{
         scrollbarWidth: "thin",
         scrollbarColor: "rgba(255,255,255,0.2) transparent",

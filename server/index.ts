@@ -4,6 +4,8 @@ import cors from "cors";
 import { connectMongo } from "./db.js";
 import exercisesRouter from "./routes/exercises.js";
 import workoutsRouter from "./routes/workouts.js";
+import progressRouter from "./routes/progress.js";
+import { startAnalyticsJobs } from "./jobs/analytics.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,9 +20,13 @@ connectMongo().catch((err) => {
   process.exit(1);
 });
 
+// Start analytics background jobs
+startAnalyticsJobs();
+
 // Routes
 app.use("/api/exercises", exercisesRouter);
 app.use("/api/workouts", workoutsRouter);
+app.use("/api/progress", progressRouter);
 
 // Health check
 app.get("/health", (req, res) => {

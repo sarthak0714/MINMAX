@@ -19,8 +19,8 @@ export default defineConfig({
         short_name: "MINMAX",
         description: "Track your workouts and progress",
         theme_color: "#ffffff",
-        background_color: "#ffffff",
-        display: "standalone",
+        background_color: "#000000",
+        display: "fullscreen",
         icons: [
           {
             src: "/mm.svg",

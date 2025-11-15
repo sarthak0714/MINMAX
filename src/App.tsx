@@ -5,6 +5,7 @@ import Dock from "./components/Dock";
 import BackgroundAura from "./components/BackgroundGrad";
 import "./App.css";
 import WorkoutsPage from "./components/WorkoutsPage";
+import ProgressPage from "./components/ProgressPage";
 import List from "./components/List";
 import AuthScreen from "./components/AuthScreen";
 import { listExercises, createExercise, type Exercise } from "./lib/workouts";
@@ -12,7 +13,7 @@ import { checkAuth } from "./lib/auth";
 
 const App = () => {
   const [authenticated, setAuthenticated] = useState(false);
-  const [active, setActive] = useState("Progress");
+  const [active, setActive] = useState("Today");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(true);
   const [exercisesError, setExercisesError] = useState<string | null>(null);
@@ -81,7 +82,7 @@ const App = () => {
       icon: FaHeartbeat,
       active: active === "Today",
       onClick: () => setActive("Today"),
-      color: { light: "#ff5555", dark: "#ff1a1a" },
+      color: { light: "#ff6b9d", dark: "#ff4d87" },
     },
     {
       label: "Progress",
@@ -142,11 +143,15 @@ const App = () => {
                 />
               )}
             </div>
+          ) : active === "Progress" ? (
+            <div className="h-full overflow-y-auto no-scrollbar">
+              <ProgressPage />
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-white opacity-70">
               <p className="text-lg">{active}</p>
               <p className="text-sm text-gray-400">
-                This is your {active} view.
+                To be added through LLM support.
               </p>
             </div>
           )}

@@ -184,7 +184,7 @@ export default function WorkoutsPage() {
       />
 
       {error && (
-        <div className="mb-3 px-3 py-2 rounded-xl bg-red-500/10 border border-red-400/30 text-red-200 text-xs">
+        <div className="mb-3 px-3 py-2 rounded-xl bg-pink-500/5 border border-pink-400/15 text-pink-200/80 text-xs">
           {error}
         </div>
       )}
