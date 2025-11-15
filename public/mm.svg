@@ -1,0 +1,10 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left mint-red bar -->
+  <rect x="40" y="40" width="20" height="120" fill="#ff5473ff" rx="10" />
+
+  <!-- Middle bar: shorter, plain, raised upward -->
+  <rect x="90" y="70" width="20" height="60" fill="#E0E0E0" rx="10" />
+
+  <!-- Right mint-green bar -->
+  <rect x="140" y="40" width="20" height="120" fill="#57ffa3ff" rx="10" />
+</svg>
