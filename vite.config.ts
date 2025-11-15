@@ -18,7 +18,7 @@ export default defineConfig({
         name: "MINMAX Workout Tracker",
         short_name: "MINMAX",
         description: "Track your workouts and progress",
-        theme_color: "#ffffff",
+        theme_color: "#000000",
         background_color: "#000000",
         display: "fullscreen",
         icons: [
