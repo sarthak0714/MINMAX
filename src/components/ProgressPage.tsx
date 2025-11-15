@@ -16,7 +16,7 @@ import { IoRemove } from "react-icons/io5";
 import { ChartSkeleton, ErrorDisplay, InsightCard } from "./ProgressComponents";
 
 // API base URL
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001/api";
 
 // Utility function to format numbers
 function formatNumber(value: number, includeUnit = false): string {

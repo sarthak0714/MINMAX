@@ -37,9 +37,9 @@ connectMongo().catch((err) => {
 startAnalyticsJobs();
 
 // Routes
-app.use("/exercises", exercisesRouter);
-app.use("/workouts", workoutsRouter);
-app.use("/progress", progressRouter);
+app.use("/api/exercises", exercisesRouter);
+app.use("/api/workouts", workoutsRouter);
+app.use("/api/progress", progressRouter);
 
 // Health check
 app.get("/health", (req, res) => {
