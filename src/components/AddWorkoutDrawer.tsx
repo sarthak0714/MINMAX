@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import  { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Workout, WorkoutExercise, WorkoutSet } from "../lib/workouts";
 import { FaFeather, FaFire, FaTimes } from "react-icons/fa";
@@ -162,17 +162,17 @@ export default function AddWorkoutDrawer({
         >
           <div className="absolute inset-0 bg-black/40" onClick={onClose} />
           <motion.div
-            className="ml-auto h-full w-full max-w-xl bg-gradient-to-b from-black/60 to-black/40 backdrop-blur-xl border-l border-white/10 p-4 pb-24 overflow-y-auto"
+            className="ml-auto h-full w-full max-w-xl bg-gradient-to-b from-black/60 to-black/40 backdrop-blur-xl border-l border-white/10 p-4 overflow-y-auto"
             initial={{ x: 400 }}
             animate={{ x: 0 }}
             exit={{ x: 400 }}
             transition={{ type: "spring", stiffness: 260, damping: 30 }}
             style={{
-              transform: "translateZ(0)",
-              willChange: "transform",
-              WebkitTransform: "translateZ(0)",
-              WebkitBackfaceVisibility: "hidden",
-              backfaceVisibility: "hidden",
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+              WebkitTransform: 'translateZ(0)',
+              WebkitBackfaceVisibility: 'hidden',
+              backfaceVisibility: 'hidden',
             }}
           >
             <div className="flex items-center justify-between mb-4">
