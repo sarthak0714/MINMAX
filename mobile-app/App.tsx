@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import {
-  View,
-  ActivityIndicator,
-  StyleSheet,
-  StatusBar,
-} from "react-native";
+import { View, ActivityIndicator, StyleSheet, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { auth } from "./src/lib/auth";
 import AuthScreen from "./src/screens/AuthScreen";
@@ -101,7 +96,7 @@ function MainNavigator() {
       </View>
 
       {/* Screen Content */}
-      <View style={{ flex: 1, paddingBottom: 90 }}>{renderScreen()}</View>
+      <View style={{ flex: 1 }}>{renderScreen()}</View>
 
       {/* Custom Dock */}
       <Dock items={dockItems} />

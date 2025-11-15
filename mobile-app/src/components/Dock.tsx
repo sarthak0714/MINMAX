@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Pressable, StyleSheet } from "react-native";
+import { BlurView } from "expo-blur";
 import Animated, {
   useAnimatedStyle,
   withSpring,
@@ -26,13 +27,13 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export default function Dock({ items }: DockProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.dockContainer}>
+      <BlurView intensity={80} tint="dark" style={styles.dockContainer}>
         <View style={styles.itemsContainer}>
           {items.map((item, index) => (
             <DockButton key={index} item={item} />
           ))}
         </View>
-      </View>
+      </BlurView>
     </View>
   );
 }
@@ -115,7 +116,7 @@ function DockButton({ item }: { item: DockItem }) {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 16,
+    bottom: 40,
     left: 16,
     right: 16,
     alignItems: "center",
@@ -123,25 +124,26 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dockContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 50,
+    backgroundColor: "rgba(20, 20, 30, 0.5)",
+    borderRadius: 100,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "rgba(255, 255, 255, 0.15)",
     paddingHorizontal: 8,
     paddingVertical: 8,
+    overflow: "hidden",
   },
   itemsContainer: {
     flexDirection: "row",
     gap: 4,
   },
   button: {
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 100,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent",
-    minWidth: 52,
+    minWidth: 62,
   },
   icon: {
     zIndex: 1,

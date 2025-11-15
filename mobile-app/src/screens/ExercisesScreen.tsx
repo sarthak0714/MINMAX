@@ -77,20 +77,64 @@ export default function ExercisesScreen() {
   };
 
   const handleExerciseSave = async (updatedExercise: Exercise) => {
-    const updatedExercises = [...exercises];
-    const index = updatedExercises.findIndex(
-      (ex) => ex._id === updatedExercise._id
-    );
-    if (index >= 0) {
-      updatedExercises[index] = updatedExercise;
-      setExercises(updatedExercises);
+    try {
+      const isNewExercise = updatedExercise._id.includes("T"); // Temporary IDs contain 'T' from ISO string
+
+      if (isNewExercise) {
+        // Create new exercise in database
+        const { document } = await apiClient.createExercise({
+          name: updatedExercise.name,
+          targetMuscle: updatedExercise.targetMuscle,
+          meta: updatedExercise.meta,
+        });
+
+        // Refresh the exercise list from server
+        const { documents } = await apiClient.getExercises();
+        setExercises(documents);
+      } else {
+        // Update existing exercise
+        await apiClient.updateExercise(updatedExercise._id, {
+          name: updatedExercise.name,
+          targetMuscle: updatedExercise.targetMuscle,
+          meta: updatedExercise.meta,
+        });
+
+        // Update local state
+        const updatedExercises = [...exercises];
+        const index = updatedExercises.findIndex(
+          (ex) => ex._id === updatedExercise._id
+        );
+        if (index >= 0) {
+          updatedExercises[index] = updatedExercise;
+          setExercises(updatedExercises);
+        }
+      }
+
+      setShowDetailScreen(false);
+    } catch (error) {
+      console.error("Failed to save exercise:", error);
+      // Still close the screen even if save fails
+      setShowDetailScreen(false);
     }
-    setShowDetailScreen(false);
   };
 
-  const handleExerciseDelete = () => {
+  const handleExerciseDelete = async () => {
     if (selectedExercise) {
-      setExercises(exercises.filter((ex) => ex._id !== selectedExercise._id));
+      try {
+        const isNewExercise = selectedExercise._id.includes("T"); // Temporary IDs contain 'T'
+
+        if (!isNewExercise) {
+          // Only delete from database if it's an existing exercise
+          await apiClient.deleteExercise(selectedExercise._id);
+        }
+
+        // Update local state
+        setExercises(exercises.filter((ex) => ex._id !== selectedExercise._id));
+      } catch (error) {
+        console.error("Failed to delete exercise:", error);
+        // Still remove from local state even if API call fails
+        setExercises(exercises.filter((ex) => ex._id !== selectedExercise._id));
+      }
     }
     setShowDetailScreen(false);
   };
@@ -151,47 +195,45 @@ export default function ExercisesScreen() {
           <ActivityIndicator size="large" color="#FFFFFF" />
         </View>
       ) : (
-        <View style={styles.listWrapper}>
-          <ScrollView
-            ref={scrollRef}
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            showsVerticalScrollIndicator={false}
-          >
-            {filteredExercises.map((exercise, index) => (
-              <Animated.View
-                key={exercise._id}
-                entering={FadeIn.duration(200).delay(index * 50)}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
+          {filteredExercises.map((exercise, index) => (
+            <Animated.View
+              key={exercise._id}
+              entering={FadeIn.duration(200).delay(index * 50)}
+            >
+              <Pressable
+                onPress={() => handleExercisePress(exercise, index)}
+                onPressIn={() => setSelectedIndex(index)}
+                style={[
+                  styles.exerciseCard,
+                  selectedIndex === index && styles.exerciseCardSelected,
+                ]}
               >
-                <Pressable
-                  onPress={() => handleExercisePress(exercise, index)}
-                  onPressIn={() => setSelectedIndex(index)}
-                  style={[
-                    styles.exerciseCard,
-                    selectedIndex === index && styles.exerciseCardSelected,
-                  ]}
-                >
-                  <View style={styles.exerciseContent}>
-                    <Text style={styles.exerciseName}>{exercise.name}</Text>
-                    {exercise.targetMuscle.length > 0 && (
-                      <View style={styles.muscleTag}>
-                        <Text style={styles.muscleTagText}>
-                          {exercise.targetMuscle[0]}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-              </Animated.View>
-            ))}
+                <View style={styles.exerciseContent}>
+                  <Text style={styles.exerciseName}>{exercise.name}</Text>
+                  {exercise.targetMuscle.length > 0 && (
+                    <View style={styles.muscleTag}>
+                      <Text style={styles.muscleTagText}>
+                        {exercise.targetMuscle[0]}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+            </Animated.View>
+          ))}
 
-            {filteredExercises.length === 0 && (
-              <Text style={styles.emptyText}>No exercises found</Text>
-            )}
-          </ScrollView>
-        </View>
+          {filteredExercises.length === 0 && (
+            <Text style={styles.emptyText}>No exercises found</Text>
+          )}
+        </ScrollView>
       )}
     </View>
   );
@@ -221,21 +263,20 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopLeftRadius: 30,
     borderBottomLeftRadius: 30,
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
     fontSize: 16,
     height: 60,
   },
   addButton: {
-    width: 60,
-    height: 60,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    borderTopRightRadius: 30,
-    borderBottomRightRadius: 30,
+    borderRadius: 100,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -262,6 +303,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingTop: 8,
+    paddingBottom: 160,
   },
   exerciseCard: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -290,7 +332,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
-    borderRadius: 20,
+    borderRadius: 100,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },

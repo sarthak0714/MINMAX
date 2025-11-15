@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import type { Exercise } from "../lib/api";
@@ -25,6 +26,7 @@ export default function ExerciseDetailScreen({
   onSave,
   onDelete,
 }: ExerciseDetailScreenProps) {
+  const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(exercise.name === "New Exercise");
   const [editedExercise, setEditedExercise] = useState<Exercise>(exercise);
 
@@ -94,7 +96,10 @@ export default function ExerciseDetailScreen({
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(500)} style={styles.container}>
+    <Animated.View
+      entering={FadeIn.duration(500)}
+      style={[styles.container, { paddingTop: insets.top }]}
+    >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -110,10 +115,10 @@ export default function ExerciseDetailScreen({
             {isEditing ? (
               <>
                 <Pressable onPress={handleCancel} style={styles.cancelButton}>
-                  <Ionicons name="close" size={20} color="#EF4444" />
+                  <Ionicons name="close" size={20} color="#FFFFFF" />
                 </Pressable>
                 <Pressable onPress={handleSave} style={styles.saveButton}>
-                  <Ionicons name="checkmark" size={20} color="#22C55E" />
+                  <Ionicons name="checkmark" size={20} color="#FFFFFF" />
                 </Pressable>
               </>
             ) : (
@@ -270,24 +275,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cancelButton: {
-    backgroundColor: "transparent",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 50,
     padding: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.25)",
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   saveButton: {
-    backgroundColor: "transparent",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 50,
     padding: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.25)",
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   editButton: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 100,
     padding: 12,
     paddingHorizontal: 16,
   },
@@ -307,7 +314,9 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 100,
     padding: 12,
     color: "#FFFFFF",
     fontSize: 16,
@@ -323,19 +332,25 @@ const styles = StyleSheet.create({
   listInput: {
     flex: 1,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 100,
     padding: 12,
     color: "#FFFFFF",
     fontSize: 14,
   },
   removeButton: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
-    borderRadius: 12,
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    borderRadius: 100,
     padding: 12,
   },
   addButton: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 100,
     padding: 12,
     alignItems: "center",
   },
@@ -369,8 +384,10 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   deleteButton: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
-    borderRadius: 12,
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    borderRadius: 100,
     padding: 16,
     alignItems: "center",
   },
