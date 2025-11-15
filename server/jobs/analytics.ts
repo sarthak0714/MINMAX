@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { Workout } from "../models/Workout";
+import { Workout } from "../models/Workout.js";
 import mongoose from "mongoose";
 
 // Define Insight schema
@@ -167,7 +167,9 @@ async function detectRecentPRs(userId: string) {
 
   for (const workout of recentWorkouts) {
     for (const exercise of workout.exercises) {
-      const maxWeight = Math.max(...exercise.sets.map((s:any) => s.weight || 0));
+      const maxWeight = Math.max(
+        ...exercise.sets.map((s: any) => s.weight || 0)
+      );
 
       // Check if this is a PR
       const historicalMax = await Workout.aggregate([
