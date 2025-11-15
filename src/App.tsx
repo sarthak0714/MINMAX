@@ -15,8 +15,9 @@ const App = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [active, setActive] = useState("Today");
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [exercisesLoading, setExercisesLoading] = useState(true);
+  const [exercisesLoading, setExercisesLoading] = useState(false);
   const [exercisesError, setExercisesError] = useState<string | null>(null);
+  const [exercisesLoaded, setExercisesLoaded] = useState(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -25,11 +26,15 @@ const App = () => {
 
   useEffect(() => {
     async function loadExercises() {
+      // Only load once
+      if (exercisesLoaded) return;
+      
       try {
         setExercisesLoading(true);
         const exs = await listExercises();
         setExercises(exs);
         setExercisesError(null);
+        setExercisesLoaded(true);
       } catch (err) {
         setExercisesError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -39,7 +44,7 @@ const App = () => {
     if (active === "Workouts") {
       loadExercises();
     }
-  }, [active]);
+  }, [active, exercisesLoaded]);
 
   const handleExerciseAdd = async (exercise: Exercise) => {
     try {
@@ -123,24 +128,27 @@ const App = () => {
               <WorkoutsPage />
             </div>
           ) : active === "Workouts" ? (
-            <div className="h-full overflow-y-auto no-scrollbar">
-              {exercisesLoading ? (
-                <div className="flex items-center justify-center h-full text-white/60">
-                  Loading exercises...
-                </div>
-              ) : exercisesError ? (
+            <div className="h-full overflow-y-auto no-scrollbar relative">
+              {exercisesError ? (
                 <div className="flex items-center justify-center h-full text-red-400">
                   Error: {exercisesError}
                 </div>
               ) : (
-                <List
-                  items={exercises}
-                  displayScrollbar={false}
-                  showGradients={true}
-                  onItemAdd={handleExerciseAdd}
-                  onItemUpdate={handleExerciseUpdate}
-                  onItemDelete={handleExerciseDelete}
-                />
+                <>
+                  <List
+                    items={exercises}
+                    displayScrollbar={false}
+                    showGradients={true}
+                    onItemAdd={handleExerciseAdd}
+                    onItemUpdate={handleExerciseUpdate}
+                    onItemDelete={handleExerciseDelete}
+                  />
+                  {exercisesLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                      <div className="text-white/60">Loading exercises...</div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : active === "Progress" ? (

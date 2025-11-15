@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+// import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import {
   BarChart,
   Bar,
@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { MdOutlineTrendingUp, MdTrendingDown } from "react-icons/md";
 import { IoRemove } from "react-icons/io5";
-import { ChartSkeleton, ErrorDisplay, InsightCard } from "./ProgressComponents";
+import { ErrorDisplay, InsightCard } from "./ProgressComponents";
 
 // API base URL
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001/api";
@@ -65,8 +65,8 @@ interface Exercise {
   targetMuscle: string[];
 }
 
-// Animated Counter Component
-function AnimatedCounter({
+// Animated Counter Component (for future use)
+/* function AnimatedCounter({
   value,
   duration = 1.5,
 }: {
@@ -82,7 +82,7 @@ function AnimatedCounter({
   }, [value, count, duration]);
 
   return <motion.span>{rounded}</motion.span>;
-}
+} */
 
 export default function ProgressPage() {
   const [activeTab, setActiveTab] = useState<
@@ -170,18 +170,18 @@ export default function ProgressPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="w-full h-full bg-black p-4 pb-24">
-        <div className="mb-6">
-          <ChartSkeleton />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full h-full bg-black overflow-y-auto no-scrollbar pb-24">
+    <div className="w-full h-full bg-black overflow-y-auto no-scrollbar pb-24 relative">
+      {loading && (
+        <div className="absolute inset-0 bg-black z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+            <div className="text-white/60 text-sm">Loading analytics...</div>
+          </div>
+        </div>
+      )}
+      
+      <div className={`transition-opacity duration-300 ${loading ? 'opacity-0' : 'opacity-100'}`}>
       {/* Header */}
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-white text-2xl font-bold mb-2">Progress</h1>
@@ -922,6 +922,7 @@ export default function ProgressPage() {
             ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

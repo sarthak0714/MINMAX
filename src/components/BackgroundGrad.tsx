@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 
 interface BackgroundAuraProps {
   color: string;
   keyId: string;
 }
 
-const BackgroundGrad: React.FC<BackgroundAuraProps> = ({ color, keyId }) => {
+const BackgroundGrad: React.FC<BackgroundAuraProps> = memo(({ color, keyId }) => {
   // 🎨 Random offset per change for natural glow variation
   const { x, y } = useMemo(() => {
     const xOffset = 40 + Math.random() * 20; // 40–60%
@@ -55,6 +55,6 @@ const BackgroundGrad: React.FC<BackgroundAuraProps> = ({ color, keyId }) => {
       />
     </AnimatePresence>
   );
-};
+});
 
 export default BackgroundGrad;
