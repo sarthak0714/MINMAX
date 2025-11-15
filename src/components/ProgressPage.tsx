@@ -112,7 +112,7 @@ export default function ProgressPage() {
 
   const fetchMuscleGroups = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/exercises`);
+      const res = await fetch(`${API_BASE}/exercises`);
       const data = await res.json();
 
       // Handle response format - may be array or {documents: array}
@@ -144,10 +144,10 @@ export default function ProgressPage() {
     try {
       const [volumeRes, statsRes, strengthRes, insightsRes] = await Promise.all(
         [
-          fetch(`${API_BASE}/api/progress/volume?range=last-30-days`),
-          fetch(`${API_BASE}/api/progress/stats?range=last-7-days`),
-          fetch(`${API_BASE}/api/progress/strength-trends?range=last-30-days`),
-          fetch(`${API_BASE}/api/progress/insights`),
+          fetch(`${API_BASE}/progress/volume?range=last-30-days`),
+          fetch(`${API_BASE}/progress/stats?range=last-7-days`),
+          fetch(`${API_BASE}/progress/strength-trends?range=last-30-days`),
+          fetch(`${API_BASE}/progress/insights`),
         ]
       );
 
