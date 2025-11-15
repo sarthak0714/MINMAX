@@ -115,8 +115,8 @@ const App = () => {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-black overflow-hidden">
-      <div className="relative p-0 m=0 aspect-[9/19.5] h-screen max-h-[844px] overflow-hidden flex flex-col justify-end">
+    <div className="relative w-full h-full bg-black overflow-hidden flex flex-col">
+      <div className="relative p-0 m-0 flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 relative overflow-hidden">
           {active === "Today" ? (
             <div className="h-full overflow-y-auto no-scrollbar">
@@ -161,7 +161,7 @@ const App = () => {
         <BackgroundAura color={activeColor} keyId={active} />
 
         {/* Dock */}
-        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
+        <div className="flex justify-center z-50 pb-4 px-4">
           <Dock items={items} />
         </div>
       </div>
