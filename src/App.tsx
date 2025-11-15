@@ -156,7 +156,7 @@ const App = () => {
         <BackgroundAura color={activeColor} keyId={active} />
 
         {/* Dock */}
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center">
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
           <Dock items={items} />
         </div>
       </div>

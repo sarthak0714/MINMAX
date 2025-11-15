@@ -44,13 +44,14 @@ const BackgroundGrad: React.FC<BackgroundAuraProps> = ({ color, keyId }) => {
         style={{
           background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
           opacity: 0.9,
-          transform: 'translate3d(-50%, 0, 0)',
-          willChange: 'opacity, background',
-          WebkitTransform: 'translate3d(-50%, 0, 0)',
-          WebkitBackfaceVisibility: 'hidden',
-          backfaceVisibility: 'hidden',
-          WebkitFontSmoothing: 'antialiased',
-          imageRendering: 'high-quality',
+          transform: "translate3d(-50%, 0, 0)",
+          willChange: "opacity, background",
+          WebkitTransform: "translate3d(-50%, 0, 0)",
+          WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
+          WebkitFontSmoothing: "antialiased",
+          imageRendering: "auto",
+          WebkitImageRendering: "auto",
         }}
       />
     </AnimatePresence>

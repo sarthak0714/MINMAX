@@ -162,7 +162,7 @@ export default function AddWorkoutDrawer({
         >
           <div className="absolute inset-0 bg-black/40" onClick={onClose} />
           <motion.div
-            className="ml-auto h-full w-full max-w-xl bg-gradient-to-b from-black/60 to-black/40 backdrop-blur-xl border-l border-white/10 p-4 overflow-y-auto"
+            className="ml-auto h-full w-full max-w-xl bg-gradient-to-b from-black/60 to-black/40 backdrop-blur-xl border-l border-white/10 p-4 pb-24 overflow-y-auto"
             initial={{ x: 400 }}
             animate={{ x: 0 }}
             exit={{ x: 400 }}

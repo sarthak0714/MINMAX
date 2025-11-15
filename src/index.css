@@ -16,6 +16,8 @@ body {
   overflow: auto;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 html::-webkit-scrollbar,
@@ -69,6 +71,10 @@ body::-webkit-scrollbar {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   will-change: auto;
+  image-rendering: auto;
+  -webkit-image-rendering: auto;
+  -moz-image-rendering: auto;
+  -o-image-rendering: auto;
 }
 
 /* Smooth gradient rendering */
