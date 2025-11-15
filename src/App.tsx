@@ -123,9 +123,15 @@ const App = () => {
   }
 
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden flex flex-col">
+    <div
+      className="relative w-full h-full bg-black overflow-hidden flex flex-col"
+      style={{ contain: "layout style" }}
+    >
       <div className="relative p-0 m-0 flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 relative overflow-hidden">
+        <div
+          className="flex-1 relative overflow-hidden"
+          style={{ contentVisibility: "auto" }}
+        >
           {active === "Today" ? (
             <div className="h-full overflow-y-auto no-scrollbar">
               <WorkoutsPage />
@@ -147,7 +153,10 @@ const App = () => {
                     onItemDelete={handleExerciseDelete}
                   />
                   {exercisesLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                      style={{ zIndex: 9999 }}
+                    >
                       <div className="text-white/60">Loading exercises...</div>
                     </div>
                   )}

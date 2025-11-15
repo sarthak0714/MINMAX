@@ -25,7 +25,10 @@ function todayISO(): string {
 
 function LoadingSkeleton() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-10 pointer-events-none">
+    <div
+      className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-10 pointer-events-none"
+      style={{ contentVisibility: "auto" }}
+    >
       <div className="flex flex-col items-center gap-2">
         <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
         <div className="text-white/60 text-sm">Loading...</div>

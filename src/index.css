@@ -1,3 +1,10 @@
+@import "tailwindcss";
+
+/* Critical styles - loaded first to prevent FOUC */
+* {
+  box-sizing: border-box;
+}
+
 /* Fullscreen PWA on mobile */
 html,
 body {
@@ -9,6 +16,7 @@ body {
   top: 0;
   left: 0;
   overflow: hidden;
+  background-color: #000000;
 }
 
 #root {
@@ -21,6 +29,7 @@ body {
   position: fixed;
   top: 0;
   left: 0;
+  background-color: #000000;
 }
 
 /* Hide scrollbars globally but keep scrolling functionality */
@@ -106,4 +115,28 @@ body::-webkit-scrollbar {
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* CSS Containment for better rendering performance */
+.page-container {
+  contain: layout style paint;
+}
+
+/* Prevent layout shift during async loading */
+[data-loading="true"] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* Optimize component repaints */
+.component-wrapper {
+  will-change: contents;
+  contain: layout;
+}
+
+/* Prevent flash during theme transitions */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
 }

@@ -46,12 +46,13 @@ const BackgroundGrad: React.FC<BackgroundAuraProps> = memo(
             background: `radial-gradient(circle at ${x}% ${y}%, ${color}90 0%, ${color}30 40%, transparent 80%)`,
             opacity: 0.9,
             transform: "translate3d(-50%, 0, 0)",
-            willChange: "opacity, background",
+            willChange: "opacity",
             WebkitTransform: "translate3d(-50%, 0, 0)",
             WebkitBackfaceVisibility: "hidden",
             backfaceVisibility: "hidden",
             WebkitFontSmoothing: "antialiased",
             imageRendering: "auto",
+            contain: "layout style paint",
           }}
         />
       </AnimatePresence>
