@@ -37,18 +37,42 @@ func getVolumeData(c *gin.Context) {
 
 	endDate := time.Now()
 	var startDate time.Time
+	var dateFormat string
+	var groupByPeriod bool
 
 	switch rangeParam {
 	case "last-7-days":
 		startDate = endDate.AddDate(0, 0, -7)
+		dateFormat = "%Y-%m-%d"
+		groupByPeriod = false
 	case "last-30-days":
 		startDate = endDate.AddDate(0, 0, -30)
+		dateFormat = "%Y-%m-%d"
+		groupByPeriod = false
+	case "last-90-days":
+		startDate = endDate.AddDate(0, 0, -90)
+		dateFormat = "%Y-W%U" // Week format
+		groupByPeriod = true
+	case "last-180-days":
+		startDate = endDate.AddDate(0, 0, -180)
+		dateFormat = "%Y-W%U" // Week format
+		groupByPeriod = true
+	case "last-365-days":
+		startDate = endDate.AddDate(0, 0, -365)
+		dateFormat = "%Y-%m" // Month format
+		groupByPeriod = true
 	case "last-3-months":
 		startDate = endDate.AddDate(0, -3, 0)
+		dateFormat = "%Y-W%U"
+		groupByPeriod = true
 	case "all-time":
 		startDate = time.Unix(0, 0)
+		dateFormat = "%Y-%m" // Month format
+		groupByPeriod = true
 	default:
 		startDate = endDate.AddDate(0, 0, -30)
+		dateFormat = "%Y-%m-%d"
+		groupByPeriod = false
 	}
 
 	collection := db.GetCollection("workouts")
@@ -59,7 +83,7 @@ func getVolumeData(c *gin.Context) {
 		}}},
 		{{Key: "$group", Value: bson.M{
 			"_id": bson.M{
-				"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"},
+				"$dateToString": bson.M{"format": dateFormat, "date": "$date"},
 			},
 			"totalVolume":  bson.M{"$sum": "$metrics.totalVolume"},
 			"workoutCount": bson.M{"$sum": 1},
@@ -80,13 +104,46 @@ func getVolumeData(c *gin.Context) {
 		return
 	}
 
-	formattedData := make([]gin.H, len(results))
-	for i, item := range results {
-		formattedData[i] = gin.H{
-			"date":     item["_id"],
-			"volume":   item["totalVolume"],
-			"workouts": item["workoutCount"],
+	// For grouped data (weekly/monthly), just return aggregated results
+	if groupByPeriod {
+		formattedData := []gin.H{}
+		for _, item := range results {
+			formattedData = append(formattedData, gin.H{
+				"date":     item["_id"].(string),
+				"volume":   item["totalVolume"],
+				"workouts": item["workoutCount"],
+			})
 		}
+		c.JSON(http.StatusOK, formattedData)
+		return
+	}
+
+	// For daily data, fill in all days in the range
+	dataMap := make(map[string]bson.M)
+	for _, item := range results {
+		dateStr := item["_id"].(string)
+		dataMap[dateStr] = item
+	}
+
+	formattedData := []gin.H{}
+	currentDate := startDate
+	for currentDate.Before(endDate) || currentDate.Equal(endDate) {
+		dateStr := currentDate.Format("2006-01-02")
+		if data, exists := dataMap[dateStr]; exists {
+			formattedData = append(formattedData, gin.H{
+				"date":     dateStr,
+				"volume":   data["totalVolume"],
+				"workouts": data["workoutCount"],
+			})
+		} else {
+			// Fill with zeros for missing days
+			formattedData = append(formattedData, gin.H{
+				"date":     dateStr,
+				"volume":   0,
+				"workouts": 0,
+			})
+		}
+		currentDate = currentDate.AddDate(0, 0, 1)
 	}
 
 	c.JSON(http.StatusOK, formattedData)
@@ -98,9 +155,35 @@ func getStats(c *gin.Context) {
 	defer cancel()
 
 	userID := "single"
+	rangeParam := c.DefaultQuery("range", "last-7-days")
 
 	endDate := time.Now()
-	startDate := endDate.AddDate(0, 0, -7)
+	var startDate time.Time
+	var prevStartDate time.Time
+
+	switch rangeParam {
+	case "last-7-days":
+		startDate = endDate.AddDate(0, 0, -7)
+		prevStartDate = startDate.AddDate(0, 0, -7)
+	case "last-30-days":
+		startDate = endDate.AddDate(0, 0, -30)
+		prevStartDate = startDate.AddDate(0, 0, -30)
+	case "last-90-days":
+		startDate = endDate.AddDate(0, 0, -90)
+		prevStartDate = startDate.AddDate(0, 0, -90)
+	case "last-180-days":
+		startDate = endDate.AddDate(0, 0, -180)
+		prevStartDate = startDate.AddDate(0, 0, -180)
+	case "last-365-days":
+		startDate = endDate.AddDate(0, 0, -365)
+		prevStartDate = startDate.AddDate(0, 0, -365)
+	case "all-time":
+		startDate = time.Unix(0, 0)
+		prevStartDate = time.Unix(0, 0)
+	default:
+		startDate = endDate.AddDate(0, 0, -7)
+		prevStartDate = startDate.AddDate(0, 0, -7)
+	}
 
 	collection := db.GetCollection("workouts")
 
@@ -111,9 +194,9 @@ func getStats(c *gin.Context) {
 			"date":   bson.M{"$gte": startDate, "$lte": endDate},
 		}}},
 		{{Key: "$group", Value: bson.M{
-			"_id":         nil,
-			"totalVolume": bson.M{"$sum": "$metrics.totalVolume"},
-			"totalSets":   bson.M{"$sum": "$metrics.numSets"},
+			"_id":          nil,
+			"totalVolume":  bson.M{"$sum": "$metrics.totalVolume"},
+			"totalSets":    bson.M{"$sum": "$metrics.numSets"},
 			"workoutCount": bson.M{"$sum": 1},
 		}}},
 	}
@@ -132,11 +215,10 @@ func getStats(c *gin.Context) {
 	}
 
 	// Get previous period for comparison
-	prevStart := startDate.AddDate(0, 0, -7)
 	prevPipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
 			"userId": userID,
-			"date":   bson.M{"$gte": prevStart, "$lt": startDate},
+			"date":   bson.M{"$gte": prevStartDate, "$lt": startDate},
 		}}},
 		{{Key: "$group", Value: bson.M{
 			"_id":          nil,
@@ -203,8 +285,27 @@ func getStrengthTrends(c *gin.Context) {
 	defer cancel()
 
 	userID := "single"
+	rangeParam := c.DefaultQuery("range", "last-30-days")
+
 	endDate := time.Now()
-	startDate := endDate.AddDate(0, 0, -30)
+	var startDate time.Time
+
+	switch rangeParam {
+	case "last-7-days":
+		startDate = endDate.AddDate(0, 0, -7)
+	case "last-30-days":
+		startDate = endDate.AddDate(0, 0, -30)
+	case "last-90-days":
+		startDate = endDate.AddDate(0, 0, -90)
+	case "last-180-days":
+		startDate = endDate.AddDate(0, 0, -180)
+	case "last-365-days":
+		startDate = endDate.AddDate(0, 0, -365)
+	case "all-time":
+		startDate = time.Unix(0, 0)
+	default:
+		startDate = endDate.AddDate(0, 0, -30)
+	}
 
 	collection := db.GetCollection("workouts")
 	pipeline := mongo.Pipeline{
@@ -242,7 +343,7 @@ func getStrengthTrends(c *gin.Context) {
 	for _, item := range results {
 		idMap := item["_id"].(bson.M)
 		exID := idMap["exerciseId"].(primitive.ObjectID).Hex()
-		
+
 		if _, exists := groupedByExercise[exID]; !exists {
 			groupedByExercise[exID] = gin.H{
 				"exerciseId": exID,
@@ -250,7 +351,7 @@ func getStrengthTrends(c *gin.Context) {
 				"data":       []gin.H{},
 			}
 		}
-		
+
 		data := groupedByExercise[exID]["data"].([]gin.H)
 		data = append(data, gin.H{
 			"date":      idMap["date"],
@@ -274,15 +375,15 @@ func getPRs(c *gin.Context) {
 
 	userID := "single"
 	collection := db.GetCollection("workouts")
-	
+
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{"userId": userID}}},
 		{{Key: "$unwind", Value: "$exercises"}},
 		{{Key: "$unwind", Value: "$exercises.sets"}},
 		{{Key: "$group", Value: bson.M{
-			"_id":          "$exercises.exerciseId",
-			"name":         bson.M{"$first": "$exercises.name"},
-			"maxWeight":    bson.M{"$max": "$exercises.sets.weight"},
+			"_id":           "$exercises.exerciseId",
+			"name":          bson.M{"$first": "$exercises.name"},
+			"maxWeight":     bson.M{"$max": "$exercises.sets.weight"},
 			"totalSessions": bson.M{"$sum": 1},
 		}}},
 		{{Key: "$sort", Value: bson.M{"maxWeight": -1}}},
@@ -368,12 +469,12 @@ func getInsights(c *gin.Context) {
 	insights := []gin.H{}
 
 	collection := db.GetCollection("workouts")
-	
+
 	// Get recent workouts
 	opts := options.Find()
 	opts.SetSort(bson.M{"date": -1})
 	opts.SetLimit(30)
-	
+
 	cursor, err := collection.Find(ctx, bson.M{"userId": userID}, opts)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch insights"})

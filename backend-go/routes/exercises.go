@@ -21,10 +21,16 @@ func RegisterExerciseRoutes(router *gin.RouterGroup) {
 	exercises := router.Group("/exercises")
 	{
 		exercises.GET("", listExercises)
+		exercises.HEAD("", healthCheck)
 		exercises.POST("", createExercise)
 		exercises.PUT("/:id", updateExercise)
 		exercises.DELETE("/:id", deleteExercise)
 	}
+}
+
+// healthCheck handles HEAD /api/exercises for health checks
+func healthCheck(c *gin.Context) {
+	c.Status(http.StatusOK)
 }
 
 // listExercises handles GET /api/exercises
@@ -33,7 +39,7 @@ func listExercises(c *gin.Context) {
 	defer cancel()
 
 	collection := db.GetCollection("exercises")
-	
+
 	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}}).SetLimit(500)
 	cursor, err := collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
@@ -207,13 +213,13 @@ func deleteExercise(c *gin.Context) {
 func generateSlug(name string) string {
 	// Convert to lowercase
 	slug := strings.ToLower(name)
-	
+
 	// Replace non-alphanumeric characters with hyphens
 	reg := regexp.MustCompile(`[^a-z0-9]+`)
 	slug = reg.ReplaceAllString(slug, "-")
-	
+
 	// Remove leading and trailing hyphens
 	slug = strings.Trim(slug, "-")
-	
+
 	return slug
 }

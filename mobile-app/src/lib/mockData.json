@@ -1,0 +1,922 @@
+{
+  "exercises": [
+    {
+      "_id": "mock-1",
+      "name": "Bench Press",
+      "targetMuscle": ["Chest", "Triceps"],
+      "meta": ["Barbell", "Compound"],
+      "slug": "bench-press",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-2",
+      "name": "Squat",
+      "targetMuscle": ["Quads", "Glutes"],
+      "meta": ["Barbell", "Compound"],
+      "slug": "squat",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-3",
+      "name": "Deadlift",
+      "targetMuscle": ["Back", "Hamstrings"],
+      "meta": ["Barbell", "Compound"],
+      "slug": "deadlift",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-4",
+      "name": "Overhead Press",
+      "targetMuscle": ["Shoulders", "Triceps"],
+      "meta": ["Barbell", "Compound"],
+      "slug": "overhead-press",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-5",
+      "name": "Pull Up",
+      "targetMuscle": ["Back", "Biceps"],
+      "meta": ["Bodyweight", "Compound"],
+      "slug": "pull-up",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-6",
+      "name": "Barbell Row",
+      "targetMuscle": ["Back", "Biceps"],
+      "meta": ["Barbell", "Compound"],
+      "slug": "barbell-row",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-7",
+      "name": "Romanian Deadlift",
+      "targetMuscle": ["Hamstrings", "Glutes"],
+      "meta": ["Barbell", "Compound"],
+      "slug": "romanian-deadlift",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-8",
+      "name": "Lat Pulldown",
+      "targetMuscle": ["Back", "Biceps"],
+      "meta": ["Cable", "Compound"],
+      "slug": "lat-pulldown",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-9",
+      "name": "Dumbbell Incline Press",
+      "targetMuscle": ["Chest", "Shoulders"],
+      "meta": ["Dumbbell", "Compound"],
+      "slug": "dumbbell-incline-press",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-10",
+      "name": "Leg Press",
+      "targetMuscle": ["Quads", "Glutes"],
+      "meta": ["Machine", "Compound"],
+      "slug": "leg-press",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-11",
+      "name": "Dumbbell Shoulder Press",
+      "targetMuscle": ["Shoulders", "Triceps"],
+      "meta": ["Dumbbell", "Compound"],
+      "slug": "dumbbell-shoulder-press",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-12",
+      "name": "Cable Fly",
+      "targetMuscle": ["Chest"],
+      "meta": ["Cable", "Isolation"],
+      "slug": "cable-fly",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-13",
+      "name": "Leg Curl",
+      "targetMuscle": ["Hamstrings"],
+      "meta": ["Machine", "Isolation"],
+      "slug": "leg-curl",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-14",
+      "name": "Bicep Curl",
+      "targetMuscle": ["Biceps"],
+      "meta": ["Dumbbell", "Isolation"],
+      "slug": "bicep-curl",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-15",
+      "name": "Tricep Pushdown",
+      "targetMuscle": ["Triceps"],
+      "meta": ["Cable", "Isolation"],
+      "slug": "tricep-pushdown",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-16",
+      "name": "Lateral Raise",
+      "targetMuscle": ["Shoulders"],
+      "meta": ["Dumbbell", "Isolation"],
+      "slug": "lateral-raise",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-17",
+      "name": "Face Pull",
+      "targetMuscle": ["Shoulders", "Back"],
+      "meta": ["Cable", "Isolation"],
+      "slug": "face-pull",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-18",
+      "name": "Leg Extension",
+      "targetMuscle": ["Quads"],
+      "meta": ["Machine", "Isolation"],
+      "slug": "leg-extension",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-19",
+      "name": "Calf Raise",
+      "targetMuscle": ["Calves"],
+      "meta": ["Machine", "Isolation"],
+      "slug": "calf-raise",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-20",
+      "name": "Plank",
+      "targetMuscle": ["Abs", "Core"],
+      "meta": ["Bodyweight", "Isometric"],
+      "slug": "plank",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "workouts": [
+    {
+      "_id": "mock-w1",
+      "userId": "demo",
+      "date": "2025-11-16T00:00:00.000Z",
+      "title": "Push Day",
+      "exercises": [
+        {
+          "exerciseId": "mock-1",
+          "name": "Bench Press",
+          "slug": "bench-press",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 135,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 8,
+              "weight": 155,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 6,
+              "weight": 165,
+              "rir": 0,
+              "tempo": null,
+              "notes": "PR!",
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-9",
+          "name": "Dumbbell Incline Press",
+          "slug": "dumbbell-incline-press",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 70,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 8,
+              "weight": 75,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 8,
+              "weight": 75,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-4",
+          "name": "Overhead Press",
+          "slug": "overhead-press",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 95,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 8,
+              "weight": 105,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 6,
+              "weight": 115,
+              "rir": 0,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-15",
+          "name": "Tricep Pushdown",
+          "slug": "tricep-pushdown",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 12,
+              "weight": 60,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 12,
+              "weight": 70,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 10,
+              "weight": 70,
+              "rir": 0,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        }
+      ],
+      "metrics": { "totalVolume": 12850, "numSets": 12 },
+      "createdAt": "2025-11-16T00:00:00.000Z",
+      "updatedAt": "2025-11-16T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-w2",
+      "userId": "demo",
+      "date": "2025-11-14T00:00:00.000Z",
+      "title": "Pull Day",
+      "exercises": [
+        {
+          "exerciseId": "mock-3",
+          "name": "Deadlift",
+          "slug": "deadlift",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 5,
+              "weight": 225,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 5,
+              "weight": 275,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 3,
+              "weight": 315,
+              "rir": 0,
+              "tempo": null,
+              "notes": "Heavy!",
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-6",
+          "name": "Barbell Row",
+          "slug": "barbell-row",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 135,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 8,
+              "weight": 155,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 8,
+              "weight": 155,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-5",
+          "name": "Pull Up",
+          "slug": "pull-up",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 0,
+              "rir": 2,
+              "tempo": null,
+              "notes": "Bodyweight",
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 8,
+              "weight": 25,
+              "rir": 1,
+              "tempo": null,
+              "notes": "With weight",
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 6,
+              "weight": 25,
+              "rir": 0,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-14",
+          "name": "Bicep Curl",
+          "slug": "bicep-curl",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 12,
+              "weight": 35,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 10,
+              "weight": 40,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 10,
+              "weight": 40,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        }
+      ],
+      "metrics": { "totalVolume": 13420, "numSets": 12 },
+      "createdAt": "2025-11-14T00:00:00.000Z",
+      "updatedAt": "2025-11-14T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-w3",
+      "userId": "demo",
+      "date": "2025-11-12T00:00:00.000Z",
+      "title": "Leg Day",
+      "exercises": [
+        {
+          "exerciseId": "mock-2",
+          "name": "Squat",
+          "slug": "squat",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 8,
+              "weight": 185,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 6,
+              "weight": 225,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 5,
+              "weight": 245,
+              "rir": 0,
+              "tempo": null,
+              "notes": "New PR!",
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-7",
+          "name": "Romanian Deadlift",
+          "slug": "romanian-deadlift",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 135,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 10,
+              "weight": 155,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 8,
+              "weight": 175,
+              "rir": 0,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-10",
+          "name": "Leg Press",
+          "slug": "leg-press",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 12,
+              "weight": 270,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 10,
+              "weight": 315,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 10,
+              "weight": 315,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-13",
+          "name": "Leg Curl",
+          "slug": "leg-curl",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 12,
+              "weight": 90,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 12,
+              "weight": 100,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 10,
+              "weight": 100,
+              "rir": 0,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        }
+      ],
+      "metrics": { "totalVolume": 15020, "numSets": 12 },
+      "createdAt": "2025-11-12T00:00:00.000Z",
+      "updatedAt": "2025-11-12T00:00:00.000Z"
+    },
+    {
+      "_id": "mock-w4",
+      "userId": "demo",
+      "date": "2025-11-10T00:00:00.000Z",
+      "title": "Upper Body",
+      "exercises": [
+        {
+          "exerciseId": "mock-1",
+          "name": "Bench Press",
+          "slug": "bench-press",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 135,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 8,
+              "weight": 155,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 6,
+              "weight": 155,
+              "rir": 0,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-6",
+          "name": "Barbell Row",
+          "slug": "barbell-row",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 135,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 8,
+              "weight": 155,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 8,
+              "weight": 155,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-11",
+          "name": "Dumbbell Shoulder Press",
+          "slug": "dumbbell-shoulder-press",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 10,
+              "weight": 50,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 8,
+              "weight": 55,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 8,
+              "weight": 55,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        },
+        {
+          "exerciseId": "mock-16",
+          "name": "Lateral Raise",
+          "slug": "lateral-raise",
+          "sets": [
+            {
+              "setNumber": 1,
+              "reps": 15,
+              "weight": 20,
+              "rir": 2,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 2,
+              "reps": 12,
+              "weight": 25,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            },
+            {
+              "setNumber": 3,
+              "reps": 12,
+              "weight": 25,
+              "rir": 1,
+              "tempo": null,
+              "notes": null,
+              "isWarmup": false
+            }
+          ]
+        }
+      ],
+      "metrics": { "totalVolume": 12500, "numSets": 12 },
+      "createdAt": "2025-11-10T00:00:00.000Z",
+      "updatedAt": "2025-11-10T00:00:00.000Z"
+    }
+  ],
+  "volumeData": [
+    { "date": "2025-11-01", "volume": 11200, "workouts": 1 },
+    { "date": "2025-11-02", "volume": 0, "workouts": 0 },
+    { "date": "2025-11-03", "volume": 12800, "workouts": 1 },
+    { "date": "2025-11-04", "volume": 0, "workouts": 0 },
+    { "date": "2025-11-05", "volume": 13500, "workouts": 1 },
+    { "date": "2025-11-06", "volume": 0, "workouts": 0 },
+    { "date": "2025-11-07", "volume": 0, "workouts": 0 },
+    { "date": "2025-11-08", "volume": 11800, "workouts": 1 },
+    { "date": "2025-11-09", "volume": 0, "workouts": 0 },
+    { "date": "2025-11-10", "volume": 12500, "workouts": 1 },
+    { "date": "2025-11-11", "volume": 0, "workouts": 0 },
+    { "date": "2025-11-12", "volume": 15020, "workouts": 1 },
+    { "date": "2025-11-13", "volume": 0, "workouts": 0 },
+    { "date": "2025-11-14", "volume": 13420, "workouts": 1 },
+    { "date": "2025-11-15", "volume": 0, "workouts": 0 },
+    { "date": "2025-11-16", "volume": 12850, "workouts": 1 }
+  ],
+  "stats": {
+    "totalVolume": 53790,
+    "workouts": 8,
+    "avgWeight": 152,
+    "totalSets": 48,
+    "volumeChange": 15.2,
+    "workoutChange": 2
+  },
+  "strengthTrends": [
+    {
+      "exerciseId": "mock-1",
+      "name": "Bench Press",
+      "targetMuscle": ["Chest"],
+      "data": [
+        { "date": "2025-11-01", "maxWeight": 155, "volume": 4100 },
+        { "date": "2025-11-03", "maxWeight": 155, "volume": 4200 },
+        { "date": "2025-11-05", "maxWeight": 160, "volume": 4300 },
+        { "date": "2025-11-08", "maxWeight": 160, "volume": 4250 },
+        { "date": "2025-11-10", "maxWeight": 155, "volume": 4180 },
+        { "date": "2025-11-12", "maxWeight": 160, "volume": 4400 },
+        { "date": "2025-11-14", "maxWeight": 165, "volume": 4450 },
+        { "date": "2025-11-16", "maxWeight": 165, "volume": 4350 }
+      ]
+    },
+    {
+      "exerciseId": "mock-2",
+      "name": "Squat",
+      "targetMuscle": ["Quads"],
+      "data": [
+        { "date": "2025-11-01", "maxWeight": 225, "volume": 5800 },
+        { "date": "2025-11-05", "maxWeight": 235, "volume": 6100 },
+        { "date": "2025-11-08", "maxWeight": 235, "volume": 6050 },
+        { "date": "2025-11-12", "maxWeight": 245, "volume": 6450 },
+        { "date": "2025-11-16", "maxWeight": 245, "volume": 6400 }
+      ]
+    },
+    {
+      "exerciseId": "mock-3",
+      "name": "Deadlift",
+      "targetMuscle": ["Back"],
+      "data": [
+        { "date": "2025-11-03", "maxWeight": 295, "volume": 3800 },
+        { "date": "2025-11-08", "maxWeight": 305, "volume": 3950 },
+        { "date": "2025-11-14", "maxWeight": 315, "volume": 4200 }
+      ]
+    },
+    {
+      "exerciseId": "mock-4",
+      "name": "Overhead Press",
+      "targetMuscle": ["Shoulders"],
+      "data": [
+        { "date": "2025-11-01", "maxWeight": 105, "volume": 2800 },
+        { "date": "2025-11-05", "maxWeight": 110, "volume": 2900 },
+        { "date": "2025-11-10", "maxWeight": 110, "volume": 2850 },
+        { "date": "2025-11-16", "maxWeight": 115, "volume": 3050 }
+      ]
+    },
+    {
+      "exerciseId": "mock-6",
+      "name": "Barbell Row",
+      "targetMuscle": ["Back"],
+      "data": [
+        { "date": "2025-11-03", "maxWeight": 145, "volume": 3700 },
+        { "date": "2025-11-10", "maxWeight": 155, "volume": 3840 },
+        { "date": "2025-11-14", "maxWeight": 155, "volume": 3880 }
+      ]
+    },
+    {
+      "exerciseId": "mock-7",
+      "name": "Romanian Deadlift",
+      "targetMuscle": ["Hamstrings"],
+      "data": [
+        { "date": "2025-11-05", "maxWeight": 165, "volume": 4100 },
+        { "date": "2025-11-08", "maxWeight": 165, "volume": 4050 },
+        { "date": "2025-11-12", "maxWeight": 175, "volume": 4300 }
+      ]
+    }
+  ],
+  "prs": [
+    {
+      "_id": "mock-1",
+      "name": "Bench Press",
+      "maxWeight": 165,
+      "totalSessions": 24
+    },
+    { "_id": "mock-2", "name": "Squat", "maxWeight": 245, "totalSessions": 18 },
+    {
+      "_id": "mock-3",
+      "name": "Deadlift",
+      "maxWeight": 315,
+      "totalSessions": 16
+    },
+    {
+      "_id": "mock-4",
+      "name": "Overhead Press",
+      "maxWeight": 115,
+      "totalSessions": 22
+    },
+    {
+      "_id": "mock-6",
+      "name": "Barbell Row",
+      "maxWeight": 155,
+      "totalSessions": 20
+    },
+    {
+      "_id": "mock-7",
+      "name": "Romanian Deadlift",
+      "maxWeight": 175,
+      "totalSessions": 14
+    },
+    {
+      "_id": "mock-5",
+      "name": "Pull Up",
+      "maxWeight": 25,
+      "totalSessions": 19
+    },
+    {
+      "_id": "mock-9",
+      "name": "Dumbbell Incline Press",
+      "maxWeight": 75,
+      "totalSessions": 16
+    }
+  ],
+  "heatmap": [
+    { "date": "2025-11-01", "count": 1, "volume": 11200, "intensity": 0.68 },
+    { "date": "2025-11-03", "count": 1, "volume": 12800, "intensity": 0.75 },
+    { "date": "2025-11-05", "count": 1, "volume": 13500, "intensity": 0.78 },
+    { "date": "2025-11-08", "count": 1, "volume": 11800, "intensity": 0.7 },
+    { "date": "2025-11-10", "count": 1, "volume": 12500, "intensity": 0.72 },
+    { "date": "2025-11-12", "count": 1, "volume": 15020, "intensity": 0.85 },
+    { "date": "2025-11-14", "count": 1, "volume": 13420, "intensity": 0.77 },
+    { "date": "2025-11-16", "count": 1, "volume": 12850, "intensity": 0.74 }
+  ],
+  "insights": [
+    {
+      "type": "strength",
+      "title": "Great Progress!",
+      "message": "Your bench press has increased by 10 lbs this month."
+    },
+    {
+      "type": "volume",
+      "title": "Consistent Volume",
+      "message": "You've maintained steady training volume for 4 weeks."
+    },
+    {
+      "type": "frequency",
+      "title": "Stay Consistent",
+      "message": "Try to hit 4 workouts per week for optimal gains."
+    }
+  ]
+}

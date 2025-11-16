@@ -49,16 +49,6 @@ function MainNavigator() {
       },
     },
     {
-      label: "Exercises",
-      icon: "barbell",
-      active: activeScreen === "Exercises",
-      onPress: () => handleScreenChange("Exercises"),
-      color: {
-        light: TAB_COLORS.Exercises,
-        dark: TAB_COLORS_DARK.Exercises,
-      },
-    },
-    {
       label: "Progress",
       icon: "analytics",
       active: activeScreen === "Progress",
@@ -66,6 +56,16 @@ function MainNavigator() {
       color: {
         light: TAB_COLORS.Progress,
         dark: TAB_COLORS_DARK.Progress,
+      },
+    },
+    {
+      label: "Exercises",
+      icon: "barbell",
+      active: activeScreen === "Exercises",
+      onPress: () => handleScreenChange("Exercises"),
+      color: {
+        light: TAB_COLORS.Exercises,
+        dark: TAB_COLORS_DARK.Exercises,
       },
     },
   ];

@@ -14,6 +14,7 @@ import {
   VictoryChart,
   VictoryAxis,
   VictoryLine,
+  VictoryScatter,
   VictoryTheme,
 } from "victory-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -69,6 +70,18 @@ function formatPercent(value: number): string {
   return `${safeValue >= 0 ? "+" : ""}${safeValue.toFixed(1)}%`;
 }
 
+function getTimeRangeLabel(range: string): string {
+  const labels: { [key: string]: string } = {
+    "1w": "Last 7 Days",
+    "1m": "Last 30 Days",
+    "3m": "Last 90 Days",
+    "6m": "Last 6 Months",
+    "1y": "Last Year",
+    max: "All Time",
+  };
+  return labels[range] || "Last 30 Days";
+}
+
 // Types
 interface Stats {
   totalVolume: number;
@@ -122,12 +135,19 @@ export default function ProgressScreen() {
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("all");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [showMuscleDropdown, setShowMuscleDropdown] = useState(false);
+  const [timeRange, setTimeRange] = useState<string>("1m");
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
     fetchData();
     fetchMuscleGroups();
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      fetchData();
+    }
+  }, [timeRange]);
 
   useEffect(() => {
     if (!loading) {
@@ -167,10 +187,21 @@ export default function ProgressScreen() {
     setLoading(true);
     setError(null);
     try {
+      // Map timeRange to API parameter
+      const rangeMap: { [key: string]: string } = {
+        "1w": "last-7-days",
+        "1m": "last-30-days",
+        "3m": "last-90-days",
+        "6m": "last-180-days",
+        "1y": "last-365-days",
+        max: "all-time",
+      };
+      const apiRange = rangeMap[timeRange] || "last-30-days";
+
       const [volume, statsData, strength, insightsData] = await Promise.all([
-        apiClient.getVolumeData("last-30-days"),
-        apiClient.getStats("last-7-days"),
-        apiClient.getStrengthTrends("last-30-days"),
+        apiClient.getVolumeData(apiRange),
+        apiClient.getStats(timeRange === "1w" ? "last-7-days" : "last-30-days"),
+        apiClient.getStrengthTrends(apiRange),
         apiClient.getInsights(),
       ]);
 
@@ -228,6 +259,27 @@ export default function ProgressScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Progress</Text>
+          <View style={styles.timeRangeContainer}>
+            {["max", "1y", "6m", "3m", "1m", "1w"].map((range) => (
+              <TouchableOpacity
+                key={range}
+                onPress={() => setTimeRange(range)}
+                style={[
+                  styles.timeRangeButton,
+                  timeRange === range && styles.timeRangeButtonActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.timeRangeText,
+                    timeRange === range && styles.timeRangeTextActive,
+                  ]}
+                >
+                  {range.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Tabs */}
@@ -351,7 +403,9 @@ export default function ProgressScreen() {
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
                 <Text style={styles.chartTitle}>Volume Trend</Text>
-                <Text style={styles.chartSubtitle}>Last 30 Days</Text>
+                <Text style={styles.chartSubtitle}>
+                  {getTimeRangeLabel(timeRange)}
+                </Text>
               </View>
               <VictoryChart
                 width={width - 64}
@@ -368,7 +422,40 @@ export default function ProgressScreen() {
                     },
                     grid: { stroke: "transparent" },
                   }}
-                  tickFormat={(date) => new Date(date).getDate().toString()}
+                  tickCount={6}
+                  tickFormat={(value) => {
+                    // For weekly data (format: "YYYY-WXX")
+                    if (typeof value === "string" && value.includes("-W")) {
+                      const week = value.split("-W")[1];
+                      return `W${week}`;
+                    }
+                    // For monthly data (format: "YYYY-MM")
+                    if (
+                      typeof value === "string" &&
+                      value.match(/^\d{4}-\d{2}$/)
+                    ) {
+                      const month = value.split("-")[1];
+                      const monthNames = [
+                        "Jan",
+                        "Feb",
+                        "Mar",
+                        "Apr",
+                        "May",
+                        "Jun",
+                        "Jul",
+                        "Aug",
+                        "Sep",
+                        "Oct",
+                        "Nov",
+                        "Dec",
+                      ];
+                      return monthNames[parseInt(month) - 1];
+                    }
+                    // For daily data (Date object)
+                    const d = new Date(value);
+                    return d.getDate().toString();
+                  }}
+                  scale="time"
                 />
                 <VictoryAxis
                   dependentAxis
@@ -384,14 +471,26 @@ export default function ProgressScreen() {
                     },
                   }}
                 />
-                <VictoryBar
+                <VictoryLine
                   data={volumeData}
                   x="date"
                   y="volume"
                   style={{
-                    data: { fill: "rgba(16, 185, 129, 0.7)" },
+                    data: {
+                      stroke: "rgba(16, 185, 129, 0.9)",
+                      strokeWidth: 2.5,
+                    },
                   }}
-                  cornerRadius={{ top: 4, bottom: 0 }}
+                  interpolation="monotoneX"
+                />
+                <VictoryScatter
+                  data={volumeData}
+                  x="date"
+                  y="volume"
+                  size={3}
+                  style={{
+                    data: { fill: "rgba(16, 185, 129, 1)" },
+                  }}
                 />
               </VictoryChart>
             </View>
@@ -494,6 +593,200 @@ export default function ProgressScreen() {
                 </ScrollView>
               )}
             </View>
+
+            {/* Single Exercise Details */}
+            {selectedExercise &&
+              (() => {
+                const trend = strengthTrends.find(
+                  (t) => t.exerciseId === selectedExercise
+                );
+
+                if (!trend || !trend.data || trend.data.length === 0) {
+                  return (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyStateTitle}>
+                        No data available for this exercise
+                      </Text>
+                      <Text style={styles.emptyStateText}>
+                        Start logging workouts to see your progress
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setSelectedExercise("")}
+                        style={styles.backButton}
+                      >
+                        <Text style={styles.backButtonText}>
+                          ← Back to list
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+
+                const latestWeight =
+                  trend.data[trend.data.length - 1]?.maxWeight || 0;
+                const previousWeight = trend.data[0]?.maxWeight || 0;
+                const change =
+                  previousWeight > 0
+                    ? ((latestWeight - previousWeight) / previousWeight) * 100
+                    : 0;
+                const maxWeight = Math.max(
+                  ...trend.data.map((d) => safeNumber(d.maxWeight))
+                );
+                const totalVolume = trend.data.reduce(
+                  (sum, d) => sum + (d.volume || 0),
+                  0
+                );
+
+                return (
+                  <View>
+                    <TouchableOpacity
+                      onPress={() => setSelectedExercise("")}
+                      style={styles.backButton}
+                    >
+                      <Text style={styles.backButtonText}>← Back to list</Text>
+                    </TouchableOpacity>
+
+                    {/* Exercise Header */}
+                    <View style={styles.exerciseDetailHeader}>
+                      <Text style={styles.exerciseDetailTitle}>
+                        {trend.name}
+                      </Text>
+                      <View style={styles.exerciseDetailStats}>
+                        <View style={styles.detailStat}>
+                          <Text style={styles.detailStatLabel}>Current</Text>
+                          <Text style={styles.detailStatValue}>
+                            {formatNumber(latestWeight)} kg
+                          </Text>
+                        </View>
+                        <View style={styles.detailStat}>
+                          <Text style={styles.detailStatLabel}>PR</Text>
+                          <Text style={styles.detailStatValue}>
+                            {formatNumber(maxWeight)} kg
+                          </Text>
+                        </View>
+                        <View style={styles.detailStat}>
+                          <Text style={styles.detailStatLabel}>Progress</Text>
+                          <View style={styles.progressBadge}>
+                            <Text style={styles.progressText}>
+                              {renderTrendIcon(change)} {formatPercent(change)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Max Weight Trend Chart */}
+                    <View style={styles.chartCard}>
+                      <Text style={styles.chartTitle}>
+                        Max Weight Progression
+                      </Text>
+                      <VictoryChart
+                        width={width - 64}
+                        height={220}
+                        theme={VictoryTheme.material}
+                        padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                        domain={{
+                          y: [
+                            Math.max(
+                              0,
+                              Math.min(
+                                ...trend.data.map((d) =>
+                                  safeNumber(d.maxWeight)
+                                )
+                              ) * 0.9
+                            ),
+                            Math.max(
+                              ...trend.data.map((d) => safeNumber(d.maxWeight))
+                            ) * 1.1,
+                          ],
+                        }}
+                      >
+                        <VictoryAxis
+                          style={{
+                            axis: { stroke: "rgba(255, 255, 255, 0.1)" },
+                            tickLabels: {
+                              fill: "rgba(255, 255, 255, 0.4)",
+                              fontSize: 10,
+                            },
+                          }}
+                          tickFormat={(date) =>
+                            new Date(date).getDate().toString()
+                          }
+                        />
+                        <VictoryAxis
+                          dependentAxis
+                          style={{
+                            axis: { stroke: "transparent" },
+                            tickLabels: {
+                              fill: "rgba(255, 255, 255, 0.4)",
+                              fontSize: 10,
+                            },
+                            grid: {
+                              stroke: "rgba(255, 255, 255, 0.1)",
+                              strokeDasharray: "3,3",
+                            },
+                          }}
+                        />
+                        <VictoryLine
+                          data={sanitizeChartData(trend.data)}
+                          x="date"
+                          y="maxWeight"
+                          style={{
+                            data: { stroke: "#10b981", strokeWidth: 3 },
+                          }}
+                        />
+                      </VictoryChart>
+                    </View>
+
+                    {/* Volume Trend Chart */}
+                    <View style={styles.chartCard}>
+                      <Text style={styles.chartTitle}>Volume Trend</Text>
+                      <VictoryChart
+                        width={width - 64}
+                        height={220}
+                        theme={VictoryTheme.material}
+                        padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                      >
+                        <VictoryAxis
+                          style={{
+                            axis: { stroke: "rgba(255, 255, 255, 0.1)" },
+                            tickLabels: {
+                              fill: "rgba(255, 255, 255, 0.4)",
+                              fontSize: 10,
+                            },
+                          }}
+                          tickFormat={(date) =>
+                            new Date(date).getDate().toString()
+                          }
+                        />
+                        <VictoryAxis
+                          dependentAxis
+                          style={{
+                            axis: { stroke: "transparent" },
+                            tickLabels: {
+                              fill: "rgba(255, 255, 255, 0.4)",
+                              fontSize: 10,
+                            },
+                            grid: {
+                              stroke: "rgba(255, 255, 255, 0.1)",
+                              strokeDasharray: "3,3",
+                            },
+                          }}
+                        />
+                        <VictoryBar
+                          data={sanitizeChartData(trend.data)}
+                          x="date"
+                          y="volume"
+                          style={{
+                            data: { fill: "rgba(16, 185, 129, 0.7)" },
+                          }}
+                          cornerRadius={{ top: 4, bottom: 0 }}
+                        />
+                      </VictoryChart>
+                    </View>
+                  </View>
+                );
+              })()}
 
             {/* Exercise List for Selected Muscle Group */}
             {!selectedExercise && selectedMuscleGroup === "all" && (
@@ -861,7 +1154,12 @@ export default function ProgressScreen() {
 
             {/* Workout Frequency Chart */}
             <View style={styles.chartCard}>
-              <Text style={styles.chartTitle}>Workout Frequency</Text>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>Workout Frequency</Text>
+                <Text style={styles.chartSubtitle}>
+                  {getTimeRangeLabel(timeRange)}
+                </Text>
+              </View>
               <VictoryChart
                 width={Dimensions.get("window").width - 64}
                 height={200}
@@ -948,12 +1246,38 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     paddingBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "left",
+  },
+  timeRangeContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 20,
+    padding: 2,
+    gap: 2,
+  },
+  timeRangeButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  timeRangeButtonActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+  timeRangeText: {
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  timeRangeTextActive: {
+    color: "rgba(255, 255, 255, 0.9)",
   },
   tabsContainer: {
     paddingHorizontal: 20,
@@ -1510,5 +1834,16 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.35)",
     fontSize: 10,
     marginTop: 4,
+  },
+  backButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    alignSelf: "flex-start",
+  },
+  backButtonText: {
+    color: "rgba(16, 185, 129, 0.9)",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

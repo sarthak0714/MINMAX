@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config/env";
+import mockData from "./mockData.json";
 
 export interface Exercise {
   _id: string;
@@ -44,15 +45,53 @@ export interface Workout {
 
 class ApiClient {
   private baseUrl: string;
+  private isOfflineMode: boolean = false;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
+  }
+
+  private async checkBackendHealth(): Promise<boolean> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+
+      const response = await fetch(`${this.baseUrl}/api/exercises?limit=1`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      if (response.ok) {
+        console.log("✅ Backend connected");
+        return true;
+      }
+      console.log("⚠️ Backend returned:", response.status);
+      return false;
+    } catch (error) {
+      console.log("🔄 Backend not available, using demo mode");
+      return false;
+    }
   }
 
   private async request<T>(
     endpoint: string,
     options?: RequestInit
   ): Promise<T> {
+    // Check if backend is available on first request
+    if (!this.isOfflineMode) {
+      const isBackendUp = await this.checkBackendHealth();
+      if (!isBackendUp) {
+        this.isOfflineMode = true;
+        console.log("Demo mode activated");
+      }
+    }
+
+    // If in offline mode, return mock data
+    if (this.isOfflineMode) {
+      return this.getMockResponse<T>(endpoint);
+    }
+
     const url = `${this.baseUrl}${endpoint}`;
     console.log("API Request:", url);
 
@@ -78,8 +117,49 @@ class ApiClient {
       return response.json();
     } catch (error) {
       console.error("API Fetch Error:", error);
-      throw error;
+      // Fall back to demo mode on error
+      this.isOfflineMode = true;
+      return this.getMockResponse<T>(endpoint);
     }
+  }
+
+  private getMockResponse<T>(endpoint: string): T {
+    console.log("Using mock data for:", endpoint);
+
+    if (endpoint.includes("/api/exercises")) {
+      return { documents: mockData.exercises } as T;
+    }
+
+    if (endpoint.includes("/api/workouts")) {
+      return { documents: mockData.workouts } as T;
+    }
+
+    if (endpoint.includes("/api/progress/volume")) {
+      return mockData.volumeData as T;
+    }
+
+    if (endpoint.includes("/api/progress/stats")) {
+      return mockData.stats as T;
+    }
+
+    if (endpoint.includes("/api/progress/strength-trends")) {
+      return mockData.strengthTrends as T;
+    }
+
+    if (endpoint.includes("/api/progress/prs")) {
+      return mockData.prs as T;
+    }
+
+    if (endpoint.includes("/api/progress/heatmap")) {
+      return mockData.heatmap as T;
+    }
+
+    if (endpoint.includes("/api/progress/insights")) {
+      return mockData.insights as T;
+    }
+
+    // Default response
+    return { documents: [] } as T;
   }
 
   // Exercises
