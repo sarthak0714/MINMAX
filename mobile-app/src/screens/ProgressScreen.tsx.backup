@@ -1,0 +1,1376 @@
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
+import {
+  VictoryBar,
+  VictoryChart,
+  VictoryAxis,
+  VictoryLine,
+  VictoryTheme,
+} from "victory-native";
+import { ErrorDisplay, InsightCard } from "../components/ProgressComponents";
+import { apiClient } from "../lib/api";
+
+// Utility functions
+function safeNumber(value: any): number {
+  if (value === null || value === undefined || value === "") {
+    return 0;
+  }
+  const num = Number(value);
+  return isNaN(num) ? 0 : num;
+}
+
+function sanitizeChartData(data: any[]): any[] {
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter((item) => {
+      if (!item || typeof item !== "object") return false;
+      // Check if required fields exist and are valid numbers
+      const xValue = item.date || item.x;
+      const yValue = item.maxWeight || item.volume || item.workouts || item.y;
+      return xValue && safeNumber(yValue) >= 0;
+    })
+    .map((item) => ({
+      ...item,
+      maxWeight: safeNumber(item.maxWeight),
+      volume: safeNumber(item.volume),
+      workouts: safeNumber(item.workouts),
+      y: safeNumber(item.y),
+    }));
+}
+
+function formatNumber(value: number, includeUnit = false): string {
+  const safeValue = safeNumber(value);
+  if (safeValue === 0 && value !== 0) {
+    return "-";
+  }
+  if (safeValue >= 10000) {
+    return `${(safeValue / 1000).toFixed(1)}k${includeUnit ? " kg" : ""}`;
+  }
+  return `${safeValue.toFixed(0)}${includeUnit ? " kg" : ""}`;
+}
+
+function formatPercent(value: number): string {
+  const safeValue = safeNumber(value);
+  if (safeValue === 0 && value !== 0) {
+    return "-";
+  }
+  return `${safeValue >= 0 ? "+" : ""}${safeValue.toFixed(1)}%`;
+}
+
+// Types
+interface Stats {
+  totalVolume: number;
+  workouts: number;
+  avgWeight: number;
+  volumeChange: number;
+  workoutChange: number;
+}
+
+interface Insight {
+  type: string;
+  title: string;
+  message: string;
+}
+
+interface StrengthTrend {
+  exerciseId: string;
+  name: string;
+  targetMuscle?: string[];
+  data: { date: string; maxWeight: number; volume: number }[];
+}
+
+interface Exercise {
+  _id: string;
+  name: string;
+  targetMuscle: string[];
+}
+
+const { width } = Dimensions.get("window");
+
+export default function ProgressScreen() {
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "strength" | "consistency"
+  >("overview");
+  const [volumeData, setVolumeData] = useState<any[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalVolume: 0,
+    workouts: 0,
+    avgWeight: 0,
+    volumeChange: 0,
+    workoutChange: 0,
+  });
+  const [strengthTrends, setStrengthTrends] = useState<StrengthTrend[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<string>("");
+  const [muscleGroups, setMuscleGroups] = useState<string[]>([]);
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("all");
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+
+  useEffect(() => {
+    fetchData();
+    fetchMuscleGroups();
+  }, []);
+
+  const fetchMuscleGroups = async () => {
+    try {
+      const data = await apiClient.getExercises();
+      const exercisesList = data.documents || [];
+
+      if (exercisesList.length === 0) {
+        console.log("No exercises found");
+        return;
+      }
+
+      setExercises(exercisesList);
+
+      const allMuscles = exercisesList.flatMap(
+        (ex: Exercise) => ex.targetMuscle || []
+      );
+      const uniqueMuscles = Array.from(new Set(allMuscles)).filter(
+        Boolean
+      ) as string[];
+      setMuscleGroups(uniqueMuscles);
+    } catch (error) {
+      console.error("Error fetching muscle groups:", error);
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [volume, statsData, strength, insightsData] = await Promise.all([
+        apiClient.getVolumeData("last-30-days"),
+        apiClient.getStats("last-7-days"),
+        apiClient.getStrengthTrends("last-30-days"),
+        apiClient.getInsights(),
+      ]);
+
+      setVolumeData(volume);
+      setStats(statsData);
+      setStrengthTrends(strength);
+      setInsights(insightsData);
+    } catch (error) {
+      console.error("Error fetching progress data:", error);
+      setError("Failed to load analytics data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={styles.loadingText}>Loading analytics...</Text>
+      </View>
+    );
+  }
+
+  const renderTrendIcon = (change: number) => {
+    if (change > 0) return "↑";
+    if (change < 0) return "↓";
+    return "−";
+  };
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Progress</Text>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <View style={styles.tabs}>
+          {(["overview", "strength", "consistency"] as const).map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={[styles.tab, activeTab === tab && styles.tabActive]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab && styles.tabTextActive,
+                ]}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {error && <ErrorDisplay message={error} />}
+
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
+        <View style={styles.tabContent}>
+          {/* Total Volume Card */}
+          <View style={styles.volumeCard}>
+            <Text style={styles.statLabel}>Total Volume</Text>
+            <View style={styles.volumeValueContainer}>
+              <Text style={styles.volumeValue}>
+                {formatNumber(stats.totalVolume)}
+              </Text>
+              <Text style={styles.volumeUnit}>kg</Text>
+            </View>
+            <View style={styles.changeContainer}>
+              <View style={styles.changeBadge}>
+                <Text style={styles.changeText}>
+                  {renderTrendIcon(stats.volumeChange)}{" "}
+                  {formatPercent(stats.volumeChange)}
+                </Text>
+              </View>
+              <Text style={styles.changeSubtext}>vs last week</Text>
+            </View>
+          </View>
+
+          {/* Metrics Grid */}
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Workouts</Text>
+              <Text style={styles.metricValue}>
+                {formatNumber(stats.workouts)}
+              </Text>
+              <Text style={styles.metricChange}>
+                {formatPercent(stats.workoutChange)}
+              </Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Avg Weight</Text>
+              <View style={styles.metricValueContainer}>
+                <Text style={styles.metricValue}>
+                  {formatNumber(stats.avgWeight)}
+                </Text>
+                <Text style={styles.metricUnit}>kg</Text>
+              </View>
+              <Text style={styles.metricSubtext}>per set</Text>
+            </View>
+          </View>
+
+          {/* Volume Trend Chart */}
+          <View style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <Text style={styles.chartTitle}>Volume Trend</Text>
+              <Text style={styles.chartSubtitle}>Last 30 Days</Text>
+            </View>
+            <VictoryChart
+              width={width - 64}
+              height={220}
+              theme={VictoryTheme.material}
+              padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+            >
+              <VictoryAxis
+                style={{
+                  axis: { stroke: "rgba(255, 255, 255, 0.1)" },
+                  tickLabels: {
+                    fill: "rgba(255, 255, 255, 0.4)",
+                    fontSize: 10,
+                  },
+                  grid: { stroke: "transparent" },
+                }}
+                tickFormat={(date) => new Date(date).getDate().toString()}
+              />
+              <VictoryAxis
+                dependentAxis
+                style={{
+                  axis: { stroke: "transparent" },
+                  tickLabels: {
+                    fill: "rgba(255, 255, 255, 0.4)",
+                    fontSize: 10,
+                  },
+                  grid: {
+                    stroke: "rgba(255, 255, 255, 0.1)",
+                    strokeDasharray: "3,3",
+                  },
+                }}
+              />
+              <VictoryBar
+                data={volumeData}
+                x="date"
+                y="volume"
+                style={{
+                  data: { fill: "rgba(236, 72, 153, 0.6)" },
+                }}
+                cornerRadius={{ top: 8 }}
+              />
+            </VictoryChart>
+          </View>
+
+          {/* Insights */}
+          {insights.length > 0 && (
+            <View style={styles.insightsSection}>
+              <Text style={styles.sectionTitle}>Insights</Text>
+              {insights.slice(0, 3).map((insight, index) => (
+                <InsightCard key={index} {...insight} />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Strength Tab */}
+      {activeTab === "strength" && (
+        <View style={styles.tabContent}>
+          {/* Muscle Group Filter */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Muscle Group</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.filterScroll}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedMuscleGroup("all");
+                  setSelectedExercise("");
+                }}
+                style={[
+                  styles.filterChip,
+                  selectedMuscleGroup === "all" && styles.filterChipActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    selectedMuscleGroup === "all" &&
+                      styles.filterChipTextActive,
+                  ]}
+                >
+                  All Muscles
+                </Text>
+              </TouchableOpacity>
+              {muscleGroups.map((group) => (
+                <TouchableOpacity
+                  key={group}
+                  onPress={() => {
+                    setSelectedMuscleGroup(group);
+                    setSelectedExercise("");
+                  }}
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === group && styles.filterChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === group &&
+                        styles.filterChipTextActive,
+                    ]}
+                  >
+                    {group}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Exercise List for Selected Muscle Group */}
+          {!selectedExercise &&
+            selectedMuscleGroup !== "all" &&
+            (() => {
+              const groupExercises = strengthTrends.filter((t) => {
+                const exercise = exercises.find(
+                  (ex) => ex._id === t.exerciseId || ex.name === t.name
+                );
+                return exercise?.targetMuscle?.includes(selectedMuscleGroup);
+              });
+
+              if (groupExercises.length === 0) {
+                return (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateTitle}>
+                      No data for {selectedMuscleGroup}
+                    </Text>
+                    <Text style={styles.emptyStateText}>
+                      Start logging exercises for this muscle group
+                    </Text>
+                  </View>
+                );
+              }
+
+              const totalVolume = groupExercises.reduce(
+                (sum, trend) =>
+                  sum + trend.data.reduce((s, d) => s + (d.volume || 0), 0),
+                0
+              );
+              const totalSets = groupExercises.reduce(
+                (sum, trend) => sum + trend.data.length,
+                0
+              );
+
+              return (
+                <View>
+                  {/* Muscle Group Stats */}
+                  <View style={styles.muscleGroupCard}>
+                    <Text style={styles.muscleGroupTitle}>
+                      {selectedMuscleGroup} Analytics
+                    </Text>
+                    <View style={styles.muscleGroupStats}>
+                      <View style={styles.muscleGroupStat}>
+                        <Text style={styles.muscleGroupStatLabel}>
+                          Exercises
+                        </Text>
+                        <Text style={styles.muscleGroupStatValue}>
+                          {groupExercises.length}
+                        </Text>
+                      </View>
+                      <View style={styles.muscleGroupStat}>
+                        <Text style={styles.muscleGroupStatLabel}>
+                          Total Volume
+                        </Text>
+                        <Text style={styles.muscleGroupStatValue}>
+                          {formatNumber(totalVolume)} kg
+                        </Text>
+                      </View>
+                      <View style={styles.muscleGroupStat}>
+                        <Text style={styles.muscleGroupStatLabel}>
+                          Total Sets
+                        </Text>
+                        <Text style={styles.muscleGroupStatValue}>
+                          {totalSets}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Exercises */}
+                  <Text style={styles.sectionTitle}>Exercises</Text>
+                  {groupExercises.map((trend) => {
+                    const latestWeight =
+                      trend.data[trend.data.length - 1]?.maxWeight || 0;
+                    const previousWeight = trend.data[0]?.maxWeight || 0;
+                    const change =
+                      previousWeight > 0
+                        ? ((latestWeight - previousWeight) / previousWeight) *
+                          100
+                        : 0;
+
+                    return (
+                      <TouchableOpacity
+                        key={trend.exerciseId}
+                        onPress={() => setSelectedExercise(trend.exerciseId)}
+                        style={styles.exerciseCard}
+                      >
+                        <View style={styles.exerciseHeader}>
+                          <View>
+                            <Text style={styles.exerciseName}>
+                              {trend.name}
+                            </Text>
+                            <Text style={styles.exerciseSubtext}>
+                              Current: {formatNumber(latestWeight)} kg
+                            </Text>
+                          </View>
+                          <View style={styles.changeBadge}>
+                            <Text style={styles.changeText}>
+                              {renderTrendIcon(change)} {formatPercent(change)}
+                            </Text>
+                          </View>
+                        </View>
+                        <VictoryChart
+                          width={width - 64}
+                          height={140}
+                          theme={VictoryTheme.material}
+                          padding={{ top: 10, bottom: 30, left: 45, right: 10 }}
+                        >
+                          <VictoryAxis
+                            style={{
+                              axis: { stroke: "rgba(255, 255, 255, 0.1)" },
+                              tickLabels: {
+                                fill: "rgba(255, 255, 255, 0.4)",
+                                fontSize: 9,
+                              },
+                            }}
+                            tickFormat={(date) =>
+                              new Date(date).getDate().toString()
+                            }
+                          />
+                          <VictoryAxis
+                            dependentAxis
+                            style={{
+                              axis: { stroke: "transparent" },
+                              tickLabels: {
+                                fill: "rgba(255, 255, 255, 0.4)",
+                                fontSize: 9,
+                              },
+                              grid: { stroke: "rgba(255, 255, 255, 0.1)" },
+                            }}
+              />
+            </VictoryChart>
+          </View>
+
+          {/* Insights */}
+          {insights.length > 0 && (
+            <View style={styles.insightsSection}>
+              <Text style={styles.sectionTitle}>Insights</Text>
+              {insights.slice(0, 3).map((insight, index) => (
+                <InsightCard key={index} {...insight} />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Strength Tab */}
+      {activeTab === "strength" && (
+          <ScrollView style={styles.tabContent}>
+            {/* Filters */}
+            <View style={styles.filtersContainer}>
+              {/* Muscle Group Filter */}
+              <View style={styles.filterItem}>
+                <Text style={styles.filterLabel}>Muscle Group</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterButton,
+                      selectedMuscleGroup === "all" && styles.filterButtonActive,
+                    ]}
+                    onPress={() => {
+                      setSelectedMuscleGroup("all");
+                      setSelectedExercise("");
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterButtonText,
+                        selectedMuscleGroup === "all" && styles.filterButtonTextActive,
+                      ]}
+                    >
+                      All Muscles
+                    </Text>
+                  </TouchableOpacity>
+                  {muscleGroups.map((group) => (
+                    <TouchableOpacity
+                      key={group}
+                      style={[
+                        styles.filterButton,
+                        selectedMuscleGroup === group && styles.filterButtonActive,
+                      ]}
+                      onPress={() => {
+                        setSelectedMuscleGroup(group);
+                        setSelectedExercise("");
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.filterButtonText,
+                          selectedMuscleGroup === group && styles.filterButtonTextActive,
+                        ]}
+                      >
+                        {group}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Exercise Selector */}
+              {selectedMuscleGroup !== "all" && (
+                <View style={styles.filterItem}>
+                  <Text style={styles.filterLabel}>Specific Exercise (Optional)</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <TouchableOpacity
+                      style={[
+                        styles.filterButton,
+                        selectedExercise === "" && styles.filterButtonActive,
+                      ]}
+                      onPress={() => setSelectedExercise("")}
+                    >
+                      <Text
+                        style={[
+                          styles.filterButtonText,
+                          selectedExercise === "" && styles.filterButtonTextActive,
+                        ]}
+                      >
+                        Show group summary
+                      </Text>
+                    </TouchableOpacity>
+                    {strengthTrends
+                      .filter((t) => {
+                        const exercise = exercises.find(
+                          (ex) => ex._id === t.exerciseId || ex.name === t.name
+                        );
+                        return exercise?.targetMuscle?.includes(selectedMuscleGroup);
+                      })
+                      .map((trend) => (
+                        <TouchableOpacity
+                          key={trend.exerciseId}
+                          style={[
+                            styles.filterButton,
+                            selectedExercise === trend.exerciseId && styles.filterButtonActive,
+                          ]}
+                          onPress={() => setSelectedExercise(trend.exerciseId)}
+                        >
+                          <Text
+                            style={[
+                              styles.filterButtonText,
+                              selectedExercise === trend.exerciseId && styles.filterButtonTextActive,
+                            ]}
+                          >
+                            {trend.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            {/* Content based on selection */}
+            {!selectedExercise && selectedMuscleGroup !== "all" && (() => {
+              const groupExercises = strengthTrends.filter((t) => {
+                const exercise = exercises.find(
+                  (ex) => ex._id === t.exerciseId || ex.name === t.name
+                );
+                return exercise?.targetMuscle?.includes(selectedMuscleGroup);
+              });
+
+              if (groupExercises.length === 0) {
+                return (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateTitle}>
+                      No data for {selectedMuscleGroup}
+                    </Text>
+                    <Text style={styles.emptyStateSubtitle}>
+                      Start logging exercises for this muscle group
+                    </Text>
+                  </View>
+                );
+              }
+
+              return (
+                <View style={styles.groupContainer}>
+                  {/* Muscle Group Header */}
+                  <View style={styles.groupHeader}>
+                    <Text style={styles.groupTitle}>{selectedMuscleGroup} Analytics</Text>
+                    <View style={styles.groupStats}>
+                      <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>Exercises</Text>
+                        <Text style={styles.statValue}>{groupExercises.length}</Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>Total Volume</Text>
+                        <Text style={styles.statValue}>
+                          {formatNumber(groupExercises.reduce((sum, trend) => sum + trend.data.reduce((s, d) => s + safeNumber(d.volume), 0), 0))} kg
+                        </Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Text style={styles.statLabel}>Total Sets</Text>
+                        <Text style={styles.statValue}>
+                          {groupExercises.reduce((sum, trend) => sum + trend.data.length, 0)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Exercises in this group */}
+                  <Text style={styles.sectionTitle}>Exercises</Text>
+                  {groupExercises.map((trend) => {
+                    const latestWeight = trend.data[trend.data.length - 1]?.maxWeight || 0;
+                    const previousWeight = trend.data[0]?.maxWeight || 0;
+                    const change = previousWeight > 0 ? ((latestWeight - previousWeight) / previousWeight) * 100 : 0;
+
+                    return (
+                      <TouchableOpacity
+                        key={trend.exerciseId}
+                        style={styles.exerciseCard}
+                        onPress={() => setSelectedExercise(trend.exerciseId)}
+                      >
+                        <View style={styles.exerciseHeader}>
+                          <View>
+                            <Text style={styles.exerciseName}>{trend.name}</Text>
+                            <Text style={styles.exerciseCurrent}>
+                              Current: {formatNumber(latestWeight)} kg
+                            </Text>
+                          </View>
+                          <View style={styles.progressBadge}>
+                            <Text style={styles.progressText}>
+                              {change > 0 ? "+" : ""}{formatPercent(change)}
+                            </Text>
+                          </View>
+                        </View>
+                        <VictoryChart
+                          width={Dimensions.get("window").width - 64}
+                          height={120}
+                          theme={VictoryTheme.material}
+                          padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                        >
+                          <VictoryAxis
+                            style={{
+                              axis: { stroke: "transparent" },
+                              tickLabels: {
+                                fill: "rgba(255, 255, 255, 0.4)",
+                                fontSize: 9,
+                              },
+                            }}
+                            tickFormat={(date) => new Date(date).getDate().toString()}
+                          />
+                          <VictoryAxis
+                            dependentAxis
+                            style={{
+                              axis: { stroke: "transparent" },
+                              tickLabels: {
+                                fill: "rgba(255, 255, 255, 0.4)",
+                                fontSize: 9,
+                              },
+                              grid: { stroke: "rgba(255, 255, 255, 0.1)" },
+                            }}
+                          />
+                          <VictoryLine
+                            data={sanitizeChartData(trend.data)}
+                            x="date"
+                            y="maxWeight"
+                            style={{
+                              data: { stroke: "#10b981", strokeWidth: 2 },
+                            }}
+                          />
+                        </VictoryChart>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              );
+            })()}
+
+            {/* Single Exercise Details */}
+            {selectedExercise && (() => {
+              const trend = strengthTrends.find((t) => t.exerciseId === selectedExercise);
+
+              if (!trend || !trend.data || trend.data.length === 0) {
+                return (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateTitle}>No data available for this exercise</Text>
+                    <Text style={styles.emptyStateSubtitle}>
+                      Start logging workouts to see your progress
+                    </Text>
+                  </View>
+                );
+              }
+
+              const latestWeight = trend.data[trend.data.length - 1]?.maxWeight || 0;
+              const previousWeight = trend.data[0]?.maxWeight || 0;
+              const change = previousWeight > 0 ? ((latestWeight - previousWeight) / previousWeight) * 100 : 0;
+              const maxWeight = Math.max(...trend.data.map((d) => safeNumber(d.maxWeight)));
+              const totalVolume = trend.data.reduce((sum, d) => sum + safeNumber(d.volume), 0);
+              const avgVolume = totalVolume / trend.data.length;
+
+              return (
+                <View style={styles.exerciseDetailContainer}>
+                  {/* Exercise Header */}
+                  <View style={styles.exerciseDetailHeader}>
+                    <Text style={styles.exerciseDetailTitle}>{trend.name}</Text>
+                    <View style={styles.exerciseDetailStats}>
+                      <View style={styles.detailStat}>
+                        <Text style={styles.detailStatLabel}>Current</Text>
+                        <Text style={styles.detailStatValue}>{formatNumber(latestWeight)} kg</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={styles.detailStatLabel}>PR</Text>
+                        <Text style={styles.detailStatValue}>{formatNumber(maxWeight)} kg</Text>
+                      </View>
+                      <View style={styles.detailStat}>
+                        <Text style={styles.detailStatLabel}>Progress</Text>
+                        <Text style={styles.detailStatValue}>
+                          {change > 0 ? "+" : ""}{formatPercent(change)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Max Weight Trend */}
+                  <View style={styles.chartCard}>
+                    <Text style={styles.chartTitle}>Max Weight Progression</Text>
+                    <VictoryChart
+                      width={Dimensions.get("window").width - 64}
+                      height={180}
+                      theme={VictoryTheme.material}
+                      padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                    >
+                      <VictoryAxis
+                        style={{
+                          axis: { stroke: "transparent" },
+                          tickLabels: {
+                            fill: "rgba(255, 255, 255, 0.4)",
+                            fontSize: 10,
+                          },
+                        }}
+                        tickFormat={(date) => new Date(date).getDate().toString()}
+                      />
+                      <VictoryAxis
+                        dependentAxis
+                        style={{
+                          axis: { stroke: "transparent" },
+                          tickLabels: {
+                            fill: "rgba(255, 255, 255, 0.4)",
+                            fontSize: 10,
+                          },
+                          grid: {
+                            stroke: "rgba(255, 255, 255, 0.1)",
+                            strokeDasharray: "3,3",
+                          },
+                        }}
+                      />
+                      <VictoryLine
+                        data={sanitizeChartData(trend.data)}
+                        x="date"
+                        y="maxWeight"
+                        style={{
+                          data: { stroke: "#10b981", strokeWidth: 2 },
+                        }}
+                      />
+                    </VictoryChart>
+                  </View>
+
+                  {/* Volume Trend */}
+                  <View style={styles.chartCard}>
+                    <Text style={styles.chartTitle}>Volume Progression</Text>
+                    <VictoryChart
+                      width={Dimensions.get("window").width - 64}
+                      height={180}
+                      theme={VictoryTheme.material}
+                      padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                    >
+                      <VictoryAxis
+                        style={{
+                          axis: { stroke: "transparent" },
+                          tickLabels: {
+                            fill: "rgba(255, 255, 255, 0.4)",
+                            fontSize: 10,
+                          },
+                        }}
+                        tickFormat={(date) => new Date(date).getDate().toString()}
+                      />
+                      <VictoryAxis
+                        dependentAxis
+                        style={{
+                          axis: { stroke: "transparent" },
+                          tickLabels: {
+                            fill: "rgba(255, 255, 255, 0.4)",
+                            fontSize: 10,
+                          },
+                          grid: { stroke: "rgba(255, 255, 255, 0.1)" },
+                        }}
+                      />
+                      <VictoryBar
+                        data={sanitizeChartData(trend.data)}
+                        x="date"
+                        y="volume"
+                        style={{
+                          data: { fill: "rgba(236, 72, 153, 0.6)" },
+                        }}
+                      />
+                    </VictoryChart>
+                  </View>
+
+                  {/* Average Volume */}
+                  <View style={styles.summaryCard}>
+                    <Text style={styles.summaryLabel}>Avg Volume per Session</Text>
+                    <Text style={styles.summaryValue}>{formatNumber(avgVolume)} kg</Text>
+                  </View>
+                </View>
+              );
+            })()}
+
+            {/* Show all exercises when "all" muscle group selected and no exercise picked */}
+            {!selectedExercise && selectedMuscleGroup === "all" && (
+              <>
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateSubtitle}>
+                    Select a muscle group to view analytics
+                  </Text>
+                  <Text style={styles.emptyStateTitle}>
+                    or choose a specific exercise from the dropdown
+                  </Text>
+                </View>
+
+                {/* Top Exercise Progress */}
+                {strengthTrends.slice(0, 3).map((trend) => {
+                  const latestWeight = trend.data[trend.data.length - 1]?.maxWeight || 0;
+                  const previousWeight = trend.data[0]?.maxWeight || 0;
+                  const change = previousWeight > 0 ? ((latestWeight - previousWeight) / previousWeight) * 100 : 0;
+
+                  return (
+                    <TouchableOpacity
+                      key={trend.exerciseId}
+                      style={styles.exerciseCard}
+                      onPress={() => setSelectedExercise(trend.exerciseId)}
+                    >
+                      <View style={styles.exerciseHeader}>
+                        <View>
+                          <Text style={styles.exerciseName}>{trend.name}</Text>
+                          <Text style={styles.exerciseCurrent}>
+                            Current: {formatNumber(latestWeight)} kg
+                          </Text>
+                        </View>
+                        <View style={styles.progressBadge}>
+                          <Text style={styles.progressText}>
+                            {change > 0 ? "+" : ""}{formatPercent(change)}
+                          </Text>
+                        </View>
+                      </View>
+                      <VictoryChart
+                        width={Dimensions.get("window").width - 64}
+                        height={150}
+                        theme={VictoryTheme.material}
+                        padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                      >
+                        <VictoryAxis
+                          style={{
+                            axis: { stroke: "transparent" },
+                            tickLabels: {
+                              fill: "rgba(255, 255, 255, 0.4)",
+                              fontSize: 10,
+                            },
+                          }}
+                          tickFormat={(date) => new Date(date).getDate().toString()}
+                        />
+                        <VictoryAxis
+                          dependentAxis
+                          style={{
+                            axis: { stroke: "transparent" },
+                            tickLabels: {
+                              fill: "rgba(255, 255, 255, 0.4)",
+                              fontSize: 10,
+                            },
+                            grid: { stroke: "rgba(255, 255, 255, 0.1)" },
+                          }}
+                        />
+                        <VictoryLine
+                          data={sanitizeChartData(trend.data)}
+                          x="date"
+                          y="maxWeight"
+                          style={{
+                            data: { stroke: "#10b981", strokeWidth: 2 },
+                          }}
+                        />
+                      </VictoryChart>
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
+
+            {strengthTrends.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateTitle}>No strength data yet</Text>
+                <Text style={styles.emptyStateSubtitle}>
+                  Start logging workouts to see your progress
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        )}
+
+        {/* Consistency Tab */}
+        {activeTab === "consistency" && (
+          <ScrollView style={styles.tabContent}>
+            {/* Weekly Summary */}
+            <View style={styles.consistencyGrid}>
+              <View style={styles.consistencyCard}>
+                <Text style={styles.consistencyLabel}>This Week</Text>
+                <Text style={styles.consistencyValue}>{formatNumber(stats.workouts)}</Text>
+                <Text style={styles.consistencySubtext}>sessions</Text>
+              </View>
+              <View style={styles.consistencyCard}>
+                <Text style={styles.consistencyLabel}>Streak</Text>
+                <Text style={styles.consistencyValue}>
+                  {insights.find((i) => i.title.includes("Streak"))?.message.match(/\d+/)?.[0] || 0}
+                </Text>
+                <Text style={styles.consistencySubtext}>days</Text>
+              </View>
+              <View style={styles.consistencyCard}>
+                <Text style={styles.consistencyLabel}>Avg/Week</Text>
+                <Text style={styles.consistencyValue}>
+                  {Math.round((stats.workouts / 7) * 7)}
+                </Text>
+                <Text style={styles.consistencySubtext}>sessions</Text>
+              </View>
+            </View>
+
+            {/* Workout Frequency Chart */}
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>Workout Frequency</Text>
+              <VictoryChart
+                width={Dimensions.get("window").width - 64}
+                height={200}
+                theme={VictoryTheme.material}
+                padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+              >
+                <VictoryAxis
+                  style={{
+                    axis: { stroke: "transparent" },
+                    tickLabels: {
+                      fill: "rgba(255, 255, 255, 0.4)",
+                      fontSize: 10,
+                    },
+                  }}
+                  tickFormat={(date) => {
+                    const d = new Date(date);
+                    return d.toLocaleDateString("en-US", { weekday: "short" }).substring(0, 2);
+                  }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  style={{
+                    axis: { stroke: "transparent" },
+                    tickLabels: {
+                      fill: "rgba(255, 255, 255, 0.4)",
+                      fontSize: 10,
+                    },
+                    grid: { stroke: "rgba(255, 255, 255, 0.1)" },
+                  }}
+                />
+                <VictoryBar
+                  data={sanitizeChartData(volumeData)}
+                  x="date"
+                  y="workouts"
+                  style={{
+                    data: { fill: "rgba(168, 85, 247, 0.6)" },
+                  }}
+                />
+              </VictoryChart>
+            </View>
+
+            {/* Consistency Insights */}
+            {insights
+              .filter((i) => i.title.includes("Streak") || i.title.includes("Back"))
+              .map((insight, index) => (
+                <InsightCard key={index} {...insight} />
+              ))}
+          </ScrollView>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  contentContainer: {
+    flexGrow: 1,
+  },
+  header: {
+    padding: 20,
+    paddingTop: 60,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+  },
+  tabsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  tabs: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 12,
+  },
+  tabActive: {
+    backgroundColor: "#fff",
+  },
+  tabText: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  tabTextActive: {
+    color: "#000",
+  },
+  tabContent: {
+    flex: 1,
+    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    color: "#fff",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  overviewContainer: {
+    padding: 16,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+  statValue: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  statLabel: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 12,
+  },
+  chartCard: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    marginBottom: 16,
+  },
+  chartTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  volumeChart: {
+    marginBottom: 24,
+  },
+  insightsContainer: {
+    marginTop: 16,
+  },
+  insightsTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  filtersContainer: {
+    marginBottom: 20,
+  },
+  filterItem: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginRight: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: "#fff",
+  },
+  filterButtonText: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 14,
+  },
+  filterButtonTextActive: {
+    color: "#000",
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyStateTitle: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  emptyStateSubtitle: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 14,
+    textAlign: "center",
+  },
+  groupContainer: {
+    flex: 1,
+  },
+  groupHeader: {
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    marginBottom: 20,
+  },
+  groupTitle: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  groupStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statItem: {
+    alignItems: "center",
+  },
+  sectionTitle: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  exerciseCard: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    marginBottom: 12,
+  },
+  exerciseHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  exerciseName: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  exerciseCurrent: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  progressBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  progressText: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  exerciseDetailContainer: {
+    flex: 1,
+  },
+  exerciseDetailHeader: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    marginBottom: 16,
+  },
+  exerciseDetailTitle: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  exerciseDetailStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  detailStat: {
+    alignItems: "center",
+  },
+  detailStatLabel: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  detailStatValue: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  summaryCard: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+  },
+  summaryLabel: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  summaryValue: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  consistencyGrid: {
+    flexDirection: "row",
+    marginBottom: 24,
+  },
+  consistencyCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+  consistencyLabel: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  consistencyValue: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  consistencySubtext: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 12,
+    marginTop: 4,
+  },
+});

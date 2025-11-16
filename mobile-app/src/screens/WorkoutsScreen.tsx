@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { apiClient, Workout, WorkoutExercise, Exercise } from "../lib/api";
 import AddWorkoutModal from "../components/AddWorkoutModal";
 
@@ -568,13 +569,13 @@ export default function WorkoutsScreen() {
                                 </Text>
                                 {comparison && (
                                   <View style={styles.comparisonBadge}>
-                                    <Ionicons
+                                    <FontAwesome5
                                       name={
                                         comparison.direction === "up"
-                                          ? "trending-up"
+                                          ? "chevron-circle-up"
                                           : comparison.direction === "down"
-                                          ? "trending-down"
-                                          : "remove"
+                                          ? "chevron-circle-down"
+                                          : "minus-circle"
                                       }
                                       size={12}
                                       color={
@@ -584,6 +585,7 @@ export default function WorkoutsScreen() {
                                           ? "#F87171"
                                           : "#FCD34D"
                                       }
+                                      solid
                                     />
                                     <Text
                                       style={[

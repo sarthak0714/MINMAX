@@ -54,8 +54,8 @@ class ApiClient {
     options?: RequestInit
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    console.log('API Request:', url);
-    
+    console.log("API Request:", url);
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -65,19 +65,19 @@ class ApiClient {
         },
       });
 
-      console.log('API Response:', response.status, response.statusText);
+      console.log("API Response:", response.status, response.statusText);
 
       if (!response.ok) {
         const error = await response
           .json()
           .catch(() => ({ error: "Request failed" }));
-        console.error('API Error:', error);
+        console.error("API Error:", error);
         throw new Error(error.error || error.message || "Request failed");
       }
 
       return response.json();
     } catch (error) {
-      console.error('API Fetch Error:', error);
+      console.error("API Fetch Error:", error);
       throw error;
     }
   }
@@ -172,20 +172,24 @@ class ApiClient {
   async getStats(range?: string): Promise<{
     totalVolume: number;
     workouts: number;
+    avgWeight: number;
     volumeChange: number;
     workoutChange: number;
   }> {
     return this.request(`/api/progress/stats${range ? `?range=${range}` : ""}`);
   }
 
-  async getStrengthTrends(): Promise<
+  async getStrengthTrends(range?: string): Promise<
     Array<{
       exerciseId: string;
       name: string;
-      data: Array<{ date: string; maxWeight: number }>;
+      targetMuscle?: string[];
+      data: Array<{ date: string; maxWeight: number; volume: number }>;
     }>
   > {
-    return this.request("/api/progress/strength-trends");
+    return this.request(
+      `/api/progress/strength-trends${range ? `?range=${range}` : ""}`
+    );
   }
 
   async getPRs(): Promise<
@@ -221,5 +225,5 @@ class ApiClient {
   }
 }
 
-console.log('API Base URL:', API_BASE_URL);
+console.log("API Base URL:", API_BASE_URL);
 export const apiClient = new ApiClient(API_BASE_URL);
