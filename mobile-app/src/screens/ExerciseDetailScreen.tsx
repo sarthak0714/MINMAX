@@ -7,11 +7,32 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Modal,
+  FlatList,
+  TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import type { Exercise } from "../lib/api";
+
+// Predefined muscle types
+const MUSCLE_TYPES = [
+  "Chest",
+  "Back",
+  "Shoulders",
+  "Biceps",
+  "Triceps",
+  "Forearms",
+  "Abs",
+  "Obliques",
+  "Quadriceps",
+  "Hamstrings",
+  "Glutes",
+  "Calves",
+  "Traps",
+  "Lats",
+];
 
 interface ExerciseDetailScreenProps {
   exercise: Exercise;
@@ -29,6 +50,8 @@ export default function ExerciseDetailScreen({
   const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(exercise.name === "New Exercise");
   const [editedExercise, setEditedExercise] = useState<Exercise>(exercise);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [selectedMuscleIndex, setSelectedMuscleIndex] = useState<number | null>(null);
 
   const handleSave = () => {
     onSave(editedExercise);
@@ -43,7 +66,7 @@ export default function ExerciseDetailScreen({
   const addTargetMuscle = () => {
     setEditedExercise({
       ...editedExercise,
-      targetMuscle: [...editedExercise.targetMuscle, ""],
+      targetMuscle: [...editedExercise.targetMuscle, MUSCLE_TYPES[0]],
     });
   };
 
@@ -163,13 +186,16 @@ export default function ExerciseDetailScreen({
             <View style={styles.listContainer}>
               {editedExercise.targetMuscle.map((muscle, index) => (
                 <View key={index} style={styles.listItem}>
-                  <TextInput
-                    value={muscle}
-                    onChangeText={(text) => updateTargetMuscle(index, text)}
-                    style={styles.listInput}
-                    placeholder="Enter muscle group"
-                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                  />
+                  <TouchableOpacity
+                    style={styles.customPicker}
+                    onPress={() => {
+                      setSelectedMuscleIndex(index);
+                      setDropdownVisible(true);
+                    }}
+                  >
+                    <Text style={styles.customPickerText}>{muscle}</Text>
+                    <Ionicons name="chevron-down" size={20} color="#10b981" />
+                  </TouchableOpacity>
                   <Pressable
                     onPress={() => removeTargetMuscle(index)}
                     style={styles.removeButton}
@@ -242,6 +268,44 @@ export default function ExerciseDetailScreen({
           </View>
         )}
       </ScrollView>
+
+      {/* Custom Dropdown Modal */}
+      <Modal
+        visible={dropdownVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDropdownVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setDropdownVisible(false)}
+        >
+          <View style={styles.dropdownModal}>
+            <Text style={styles.dropdownTitle}>Select Muscle Group</Text>
+            <FlatList
+              data={MUSCLE_TYPES}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    if (selectedMuscleIndex !== null) {
+                      updateTargetMuscle(selectedMuscleIndex, item);
+                    }
+                    setDropdownVisible(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItemText}>{item}</Text>
+                  {selectedMuscleIndex !== null &&
+                    editedExercise.targetMuscle[selectedMuscleIndex] === item && (
+                      <Ionicons name="checkmark" size={20} color="#10b981" />
+                    )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </Animated.View>
   );
 }
@@ -339,6 +403,22 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
   },
+  pickerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    height: 48,
+  },
+  picker: {
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    height: 48,
+    paddingHorizontal: 12,
+  },
   removeButton: {
     backgroundColor: "rgba(239, 68, 68, 0.15)",
     borderWidth: 1,
@@ -395,5 +475,60 @@ const styles = StyleSheet.create({
     color: "#FCA5A5",
     fontSize: 16,
     fontWeight: "500",
+  },
+  customPicker: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    height: 48,
+  },
+  customPickerText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dropdownModal: {
+    backgroundColor: 'rgba(30, 30, 30, 0.98)',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '70%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+  },
+  dropdownTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  dropdownItemText: {
+    color: '#FFFFFF',
+    fontSize: 16,
   },
 });

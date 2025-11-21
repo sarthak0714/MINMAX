@@ -8,6 +8,8 @@ import {
   Dimensions,
   ActivityIndicator,
   Animated,
+  Modal,
+  Pressable,
 } from "react-native";
 import {
   VictoryBar,
@@ -23,6 +25,7 @@ import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { ErrorDisplay, InsightCard } from "../components/ProgressComponents";
 import { apiClient } from "../lib/api";
 import { FontAwesome6 } from "@expo/vector-icons";
+import Body from "react-native-body-highlighter";
 
 // Utility functions
 function safeNumber(value: any): number {
@@ -115,6 +118,52 @@ interface Exercise {
 
 const { width } = Dimensions.get("window");
 
+// Map backend muscle group names to body highlighter slugs
+const mapMuscleToBodyPart = (muscleName: string): string | null => {
+  const muscleMap: { [key: string]: string } = {
+    // Chest
+    "Chest": "chest",
+    "Pectorals": "chest",
+    
+    // Back
+    "Back": "upper-back",
+    "Upper Back": "upper-back",
+    "Lower Back": "lower-back",
+    "Lats": "upper-back",
+    "Traps": "trapezius",
+    "Trapezius": "trapezius",
+    
+    // Arms
+    "Biceps": "biceps",
+    "Triceps": "triceps",
+    "Forearms": "forearm",
+    "Forearm": "forearm",
+    
+    // Shoulders
+    "Shoulders": "front-deltoids",
+    "Delts": "front-deltoids",
+    "Front Delts": "front-deltoids",
+    "Rear Delts": "back-deltoids",
+    
+    // Core
+    "Abs": "abs",
+    "Abdominals": "abs",
+    "Core": "abs",
+    "Obliques": "obliques",
+    
+    // Legs
+    "Quadriceps": "quadriceps",
+    "Quads": "quadriceps",
+    "Hamstrings": "hamstring",
+    "Glutes": "gluteal",
+    "Calves": "calves",
+    "Adductors": "adductor",
+    "Abductors": "abductors",
+  };
+  
+  return muscleMap[muscleName] || null;
+};
+
 const getMillisecondsForRange = (range: string) => {
   switch (range) {
     case "1w":
@@ -158,6 +207,8 @@ export default function ProgressScreen() {
   const [timeRange, setTimeRange] = useState<string>("1w");
   const [metricType, setMetricType] = useState<"maxWeight" | "est1RM">("maxWeight");
   const fadeAnim = useState(new Animated.Value(0))[0];
+  const [muscleModalVisible, setMuscleModalVisible] = useState(false);
+  const [selectedMuscleInfo, setSelectedMuscleInfo] = useState<{ name: string; volume: number } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -473,46 +524,112 @@ export default function ProgressScreen() {
               </View>
             </View>
 
-            {/* Muscle Split Chart */}
+            {/* Muscle Split - Body Highlighter */}
             {stats.muscleSplit && stats.muscleSplit.length > 0 && (
               <View style={styles.chartCard}>
-                <Text style={styles.chartTitle}>Muscle Split (Volume)</Text>
-                <View style={styles.muscleSplitList}>
-                  {stats.muscleSplit
-                    .sort((a, b) => b.volume - a.volume)
-                    .map((item, index) => {
-                      const maxVolume = Math.max(
-                        ...stats.muscleSplit.map((m) => m.volume)
-                      );
-                      const percentage = (item.volume / maxVolume) * 100;
-                      return (
-                        <View key={item._id} style={styles.muscleSplitItem}>
-                          <View style={styles.muscleSplitRow}>
-                            <View style={styles.muscleInfo}>
-                              <Text style={styles.muscleRank}>{index + 1}</Text>
-                              <View>
-                                <Text style={styles.muscleSplitName}>
-                                  {item._id}
-                                </Text>
-                                <Text style={styles.muscleSplitValue}>
-                                  {formatNumber(item.volume)} kg
-                                </Text>
-                              </View>
-                            </View>
-                            <View style={styles.muscleGraph}>
-                               <View style={styles.progressBarContainer}>
-                                <View
-                                  style={[
-                                    styles.progressBar,
-                                    { width: `${percentage}%` },
-                                  ]}
-                                />
-                              </View>
-                            </View>
-                          </View>
-                        </View>
-                      );
-                    })}
+                <Text style={styles.chartTitle}>Muscle Split</Text>
+                <View style={styles.bodyContainer}>
+                  <View style={styles.bodyViewsContainer}>
+                    {/* Front View */}
+                    <View style={styles.bodyView}>
+                      <Body
+                        data={stats.muscleSplit
+                          .map((item) => {
+                            const bodyPart = mapMuscleToBodyPart(item._id);
+                            if (!bodyPart) return null;
+                            
+                            // Calculate intensity based on volume (1-5 scale)
+                            const maxVolume = Math.max(...stats.muscleSplit.map((m) => m.volume));
+                            const volumePercentage = (item.volume / maxVolume) * 100;
+                            
+                            // Map to intensity: 20% = 1, 40% = 2, 60% = 3, 80% = 4, 100% = 5
+                            let intensity = 1;
+                            if (volumePercentage >= 80) intensity = 5;
+                            else if (volumePercentage >= 60) intensity = 4;
+                            else if (volumePercentage >= 40) intensity = 3;
+                            else if (volumePercentage >= 20) intensity = 2;
+                            
+                            return {
+                              slug: bodyPart as any,
+                              intensity: intensity,
+                            };
+                          })
+                          .filter((item) => item !== null) as any}
+                        onBodyPartPress={(bodyPart) => {
+                          // Find the muscle name from the body part slug
+                          const muscleName = Object.entries(stats.muscleSplit).find(([_, item]) => 
+                            mapMuscleToBodyPart(item._id) === bodyPart.slug
+                          )?.[1]._id;
+                          
+                          if (muscleName) {
+                            const muscleData = stats.muscleSplit.find(m => m._id === muscleName);
+                            setSelectedMuscleInfo({ name: muscleName, volume: muscleData?.volume || 0 });
+                            setMuscleModalVisible(true);
+                          }
+                        }}
+                        gender="male"
+                        side="front"
+                        scale={0.7}
+                        colors={[
+                          "rgba(16, 185, 129, 0.2)",
+                          "rgba(16, 185, 129, 0.4)",
+                          "rgba(16, 185, 129, 0.6)",
+                          "rgba(16, 185, 129, 0.8)",
+                          "rgba(16, 185, 129, 1.0)",
+                        ]}
+                      />
+                    </View>
+                    
+                    {/* Back View */}
+                    <View style={styles.bodyView}>
+                      <Body
+                        data={stats.muscleSplit
+                          .map((item) => {
+                            const bodyPart = mapMuscleToBodyPart(item._id);
+                            if (!bodyPart) return null;
+                            
+                            // Calculate intensity based on volume (1-5 scale)
+                            const maxVolume = Math.max(...stats.muscleSplit.map((m) => m.volume));
+                            const volumePercentage = (item.volume / maxVolume) * 100;
+                            
+                            // Map to intensity
+                            let intensity = 1;
+                            if (volumePercentage >= 80) intensity = 5;
+                            else if (volumePercentage >= 60) intensity = 4;
+                            else if (volumePercentage >= 40) intensity = 3;
+                            else if (volumePercentage >= 20) intensity = 2;
+                            
+                            return {
+                              slug: bodyPart as any,
+                              intensity: intensity,
+                            };
+                          })
+                          .filter((item) => item !== null) as any}
+                        onBodyPartPress={(bodyPart) => {
+                          // Find the muscle name from the body part slug
+                          const muscleName = Object.entries(stats.muscleSplit).find(([_, item]) => 
+                            mapMuscleToBodyPart(item._id) === bodyPart.slug
+                          )?.[1]._id;
+                          
+                          if (muscleName) {
+                            const muscleData = stats.muscleSplit.find(m => m._id === muscleName);
+                            setSelectedMuscleInfo({ name: muscleName, volume: muscleData?.volume || 0 });
+                            setMuscleModalVisible(true);
+                          }
+                        }}
+                        gender="male"
+                        side="back"
+                        scale={0.7}
+                        colors={[
+                          "rgba(16, 185, 129, 0.2)",
+                          "rgba(16, 185, 129, 0.4)",
+                          "rgba(16, 185, 129, 0.6)",
+                          "rgba(16, 185, 129, 0.8)",
+                          "rgba(16, 185, 129, 1.0)",
+                        ]}
+                      />
+                    </View>
+                  </View>
                 </View>
               </View>
             )}
@@ -1336,6 +1453,42 @@ export default function ProgressScreen() {
           </Animated.ScrollView>
         )}
       </ScrollView>
+
+      {/* Custom Muscle Info Modal - Compact iOS Style */}
+      <Modal
+        visible={muscleModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMuscleModalVisible(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setMuscleModalVisible(false)}
+        >
+          <Pressable 
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <LinearGradient
+              colors={['rgba(50, 50, 50, 0.95)', 'rgba(40, 40, 40, 0.95)']}
+              style={styles.modalGradient}
+            >
+              {/* Muscle Name */}
+              <Text style={styles.modalTitle}>{selectedMuscleInfo?.name}</Text>
+              
+              {/* Volume Display */}
+              <View style={styles.modalVolumeRow}>
+                <Text style={styles.modalVolumeValue}>
+                  {formatNumber(selectedMuscleInfo?.volume || 0)}
+                </Text>
+                <Text style={styles.modalVolumeUnit}>kg</Text>
+              </View>
+              
+              <Text style={styles.modalVolumeLabel}>total volume</Text>
+            </LinearGradient>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -2100,5 +2253,91 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     fontSize: 14,
     textAlign: 'center',
+  },
+  bodyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  bodyViewsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-start',
+    width: '100%',
+    gap: 10,
+  },
+  bodyView: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  bodyViewLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: 260,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  modalGradient: {
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  modalVolumeRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginBottom: 4,
+  },
+  modalVolumeValue: {
+    color: '#10b981',
+    fontSize: 48,
+    fontWeight: '200',
+    letterSpacing: -1.5,
+    lineHeight: 52,
+  },
+  modalVolumeUnit: {
+    color: '#10b981',
+    fontSize: 18,
+    fontWeight: '400',
+    opacity: 0.8,
+  },
+  modalVolumeLabel: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 11,
+    fontWeight: '500',
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
 });
