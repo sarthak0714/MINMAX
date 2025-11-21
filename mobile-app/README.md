@@ -1,30 +1,52 @@
 # MINMAX Mobile App
 
-React Native mobile app for MINMAX workout tracking.
+A modern React Native mobile application for tracking workouts, analyzing progress, and optimizing your training.
+
+## Features
+
+- **📊 Workout Tracking** - Log exercises with sets, reps, weight, RIR, and notes
+- **📈 Progress Analytics** - Visualize volume trends, strength progression, and PRs
+- **💪 Body Muscle Visualization** - Interactive body highlighter showing muscle activation
+- **📅 Calendar View** - Track workout frequency and consistency
+- **🎯 Personal Records** - Automatic PR tracking for all exercises
+- **🔧 Configurable Backend** - Connect to your own backend or use mock data
+- **🌙 Dark Theme** - Beautiful dark UI optimized for gym environments
+
+## Tech Stack
+
+- **Framework**: React Native (Expo)
+- **Language**: TypeScript
+- **Navigation**: React Navigation
+- **Charts**: Victory Native
+- **UI Components**: NativeWind (Tailwind CSS)
+- **Storage**: AsyncStorage
+- **Icons**: FontAwesome5, Ionicons
+- **Body Visualization**: react-native-body-highlighter
 
 ## Prerequisites
 
-- Node.js 18+
-- Expo CLI
-- Android Studio (for Android) or Xcode (for iOS)
+- Node.js 18+ and npm/yarn
+- Expo CLI (`npm install -g expo-cli`)
+- iOS Simulator (macOS) or Android Emulator
+- Expo Go app (for physical device testing)
 
 ## Installation
 
-```bash
-cd mobile-app
-npm install
-```
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd MINMAX/mobile-app
+   ```
 
-## Configuration
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-Create a `.env` file in the `mobile-app` directory:
-
-```env
-EXPO_PUBLIC_API_URL=http://localhost:3001
-EXPO_PUBLIC_AUTH_PASSWORD=your_password_here
-```
-
-For Android emulator, use `http://10.0.2.2:3001` instead of `localhost`.
+3. **Start the development server**
+   ```bash
+   npm start
+   ```
 
 ## Running the App
 
@@ -34,116 +56,212 @@ For Android emulator, use `http://10.0.2.2:3001` instead of `localhost`.
 # Start Expo dev server
 npm start
 
-# Run on Android
-npm run android
-
-# Run on iOS (macOS only)
+# Run on iOS simulator
 npm run ios
 
-# Run on web
+# Run on Android emulator
+npm run android
+
+# Run on web browser
 npm run web
 ```
 
-### Building for Production
+### Using Expo Go
 
-#### Android APK
+1. Install Expo Go on your phone ([iOS](https://apps.apple.com/app/expo-go/id982107779) | [Android](https://play.google.com/store/apps/details?id=host.exp.exponent))
+2. Run `npm start`
+3. Scan the QR code with your camera (iOS) or Expo Go app (Android)
 
-```bash
-# Install EAS CLI
-npm install -g eas-cli
+## Configuration
 
-# Login to Expo
-eas login
+### Backend URL Setup
 
-# Configure build
-eas build:configure
+The app supports two modes:
 
-# Build APK
-eas build --platform android --profile preview
-```
+1. **Mock Mode** (Default) - Uses sample data, no backend required
+2. **Backend Mode** - Connects to your deployed backend
 
-#### Web Deployment
+To configure the backend URL:
+1. Tap "Today" 5 times in the Workouts screen
+2. Enter your backend URL (e.g., `https://your-backend.com`)
+3. Test the connection
+4. Save
 
-```bash
-# Build for web
-npm run build:web
+The configuration is stored locally using AsyncStorage and persists across app restarts.
 
-# Output will be in web-build/
-# Deploy to any static hosting (Vercel, Netlify, etc.)
-```
+### Mock Data
+
+When no backend URL is configured or the backend is unreachable, the app automatically falls back to mock mode with:
+- 8 sample workouts (today + past 7 days)
+- Dynamic dates based on current date
+- Realistic exercise data and progression
+- Full analytics and visualizations
 
 ## Project Structure
 
 ```
 mobile-app/
 ├── src/
-│   ├── config/
-│   │   └── env.ts          # Environment configuration
-│   ├── lib/
-│   │   ├── api.ts          # API client
-│   │   ├── auth.ts         # Authentication
-│   │   └── storage.ts      # AsyncStorage wrapper
 │   ├── screens/
-│   │   ├── AuthScreen.tsx
-│   │   ├── WorkoutsScreen.tsx
-│   │   ├── ExercisesScreen.tsx
-│   │   └── ProgressScreen.tsx
-│   └── components/         # Reusable components
-├── App.tsx                 # Main app component
-├── app.json               # Expo configuration
-├── babel.config.js        # Babel configuration
-└── tailwind.config.js     # Tailwind configuration
+│   │   ├── WorkoutsScreen.tsx      # Main workout logging screen
+│   │   ├── ProgressScreen.tsx      # Analytics and charts
+│   │   └── LoginScreen.tsx         # Authentication (deprecated)
+│   ├── lib/
+│   │   ├── api.ts                  # API client with mock fallback
+│   │   ├── config.ts               # Backend URL configuration
+│   │   ├── dynamicMockData.ts      # Mock data generator
+│   │   └── mockData.json           # Static exercise data
+│   └── components/                 # Reusable UI components
+├── App.tsx                         # App entry point
+├── app.json                        # Expo configuration
+├── package.json                    # Dependencies
+└── tsconfig.json                   # TypeScript config
 ```
 
-## Features
+## Building for Production
 
-- ✅ Authentication with password
-- ✅ Exercise library management
-- ✅ Workout tracking
-- ✅ Progress analytics
-- ✅ Dark mode UI
-- ✅ Offline support (AsyncStorage)
-- ✅ Cross-platform (Android, iOS, Web)
+### iOS (requires macOS)
 
-## Tech Stack
+```bash
+# Build for iOS
+eas build --platform ios
 
-- **Framework**: React Native (Expo)
-- **UI**: NativeWind (TailwindCSS)
-- **Navigation**: React Navigation
-- **State Management**: React Query
-- **Storage**: AsyncStorage
-- **Charts**: Victory Native
-- **Animations**: React Native Reanimated + Moti
+# Submit to App Store
+eas submit --platform ios
+```
 
-## API Integration
+### Android
 
-The app connects to the Go backend API. Ensure the backend is running before using the app.
+```bash
+# Build APK for testing
+eas build --platform android --profile preview
 
-Default API endpoint: `http://localhost:3001`
+# Build AAB for Play Store
+eas build --platform android --profile production
+
+# Submit to Play Store
+eas submit --platform android
+```
+
+### EAS Configuration
+
+1. Install EAS CLI:
+   ```bash
+   npm install -g eas-cli
+   ```
+
+2. Login to Expo:
+   ```bash
+   eas login
+   ```
+
+3. Configure your project:
+   ```bash
+   eas build:configure
+   ```
+
+4. Update `eas.json` with your build profiles
+
+## Environment Variables
+
+The app uses AsyncStorage for runtime configuration. No build-time environment variables are required.
+
+## Screens
+
+### Workouts Screen
+- Calendar view (month/week modes)
+- Workout list for selected date
+- Add/edit/delete workouts
+- Exercise selection with muscle targeting
+- Set tracking with RIR, tempo, and notes
+
+### Progress Screen
+- Volume trends chart
+- Strength progression by exercise
+- Personal records table
+- Muscle split visualization (body highlighter)
+- Workout heatmap
+- Training insights
+
+## Key Features
+
+### Secret Gesture Configuration
+- Tap "Today" 5 times to access backend URL configuration
+- Allows users to connect to their own backend instance
+- Automatic fallback to mock mode on connection failure
+
+### Mock Mode Indicator
+- Orange "🔧 Mock" badge when using mock data
+- Visible in the header for transparency
+
+### Dynamic Mock Data
+- Generates fresh workout data based on current date
+- Includes today + past 7 days
+- Realistic progression and variety
+
+## Development
+
+### Adding New Screens
+
+1. Create screen component in `src/screens/`
+2. Add to navigation in `App.tsx`
+3. Update types if using TypeScript
+
+### Modifying API Client
+
+The API client (`src/lib/api.ts`) automatically handles:
+- Backend connectivity
+- Mock mode fallback
+- Error handling
+- Request/response formatting
+
+### Customizing Mock Data
+
+Edit `src/lib/dynamicMockData.ts` to modify:
+- Workout templates
+- Exercise selection
+- Volume and progression data
 
 ## Troubleshooting
 
-### Metro bundler issues
-
+### App won't start
 ```bash
+# Clear cache and restart
 npm start -- --clear
 ```
 
-### Android connection issues
-
-Make sure your backend is accessible from the emulator:
-
-- Use `http://10.0.2.2:3001` for Android emulator
-- Use your computer's IP address for physical devices
-
-### iOS build issues
-
+### Build errors
 ```bash
-cd ios
-pod install
-cd ..
+# Clean and reinstall
+rm -rf node_modules
+npm install
 ```
+
+### iOS simulator issues
+```bash
+# Reset simulator
+xcrun simctl erase all
+```
+
+## Deployment Checklist
+
+- [ ] Update `app.json` with correct app name and bundle identifier
+- [ ] Configure `eas.json` for production builds
+- [ ] Test on both iOS and Android
+- [ ] Verify backend connectivity
+- [ ] Test mock mode fallback
+- [ ] Update app icons and splash screen
+- [ ] Review privacy policy and terms
+- [ ] Submit for app store review
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test on iOS and Android
+5. Submit a pull request
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details
