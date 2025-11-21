@@ -1,7 +1,7 @@
 # MINMAX - Workout Tracking App
 
-- Motivation: I just hated ui of the other FOSS apps & the data storage paywall so I made one which has a better one
-- it is a comprehensive workout tracking system with a mobile-first approach, featuring a React Native mobile app and a Go-based backend API.
+- Motivation: I just hated UI of the other FOSS apps & the data storage paywall for the ones with good UI, so I made smth which is better.
+- it is a comprehensive workout tracking system with a mobile-first approach, featuring a React Native mobile app and a Go-based backend API (I've tried it on android).
 
 ## 🏗️ Project Structure
 
@@ -156,6 +156,9 @@ The app works in two modes:
 4. Tap "Test Connection"
 5. Save
 
+[Backend URL setup](https://github.com/user-attachments/assets/077b1ee5-33de-4fad-8946-36ea40d58c69)
+
+
 The app will automatically fall back to mock mode if the backend is unreachable.
 
 ## 📦 Building for Production
@@ -291,10 +294,6 @@ See [backend-go/README.md](./backend-go/README.md) for complete API endpoint doc
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
-
-MIT License - see LICENSE file for details
-
 ## 🆘 Troubleshooting
 
 ### Backend won't start
@@ -321,8 +320,3 @@ rm -rf node_modules
 npm install
 npm start -- --clear
 ```
-
-
----
-
-**I just hated ui of the other FOSS apps & the data storage paywall so I made one which has a better one**
