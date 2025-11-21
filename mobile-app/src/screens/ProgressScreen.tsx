@@ -15,6 +15,7 @@ import {
   VictoryAxis,
   VictoryLine,
   VictoryScatter,
+  VictoryPie,
   VictoryTheme,
 } from "victory-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -90,6 +91,7 @@ interface Stats {
   volumeChange: number;
   workoutChange: number;
   totalSets: number;
+  muscleSplit: Array<{ _id: string; volume: number }>;
 }
 
 interface Insight {
@@ -102,7 +104,7 @@ interface StrengthTrend {
   exerciseId: string;
   name: string;
   targetMuscle?: string[];
-  data: { date: string; maxWeight: number; volume: number }[];
+  data: { date: string; maxWeight: number; volume: number; est1RM: number }[];
 }
 
 interface Exercise {
@@ -125,6 +127,7 @@ export default function ProgressScreen() {
     volumeChange: 0,
     workoutChange: 0,
     totalSets: 0,
+    muscleSplit: [],
   });
   const [strengthTrends, setStrengthTrends] = useState<StrengthTrend[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
@@ -135,7 +138,8 @@ export default function ProgressScreen() {
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("all");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [showMuscleDropdown, setShowMuscleDropdown] = useState(false);
-  const [timeRange, setTimeRange] = useState<string>("1m");
+  const [timeRange, setTimeRange] = useState<string>("1w");
+  const [metricType, setMetricType] = useState<"maxWeight" | "est1RM">("maxWeight");
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
@@ -398,6 +402,43 @@ export default function ProgressScreen() {
                 <Text style={styles.metricStatusText}>THIS WEEK</Text>
               </View>
             </View>
+
+            {/* Muscle Split Chart */}
+            {stats.muscleSplit && stats.muscleSplit.length > 0 && (
+              <View style={styles.chartCard}>
+                <Text style={styles.chartTitle}>Muscle Split (Volume)</Text>
+                <View style={styles.muscleSplitList}>
+                  {stats.muscleSplit
+                    .sort((a, b) => b.volume - a.volume)
+                    .map((item, index) => {
+                      const maxVolume = Math.max(
+                        ...stats.muscleSplit.map((m) => m.volume)
+                      );
+                      const percentage = (item.volume / maxVolume) * 100;
+                      return (
+                        <View key={item._id} style={styles.muscleSplitItem}>
+                          <View style={styles.muscleSplitHeader}>
+                            <Text style={styles.muscleSplitName}>
+                              {item._id}
+                            </Text>
+                            <Text style={styles.muscleSplitValue}>
+                              {formatNumber(item.volume)} kg
+                            </Text>
+                          </View>
+                          <View style={styles.progressBarContainer}>
+                            <View
+                              style={[
+                                styles.progressBar,
+                                { width: `${percentage}%` },
+                              ]}
+                            />
+                          </View>
+                        </View>
+                      );
+                    })}
+                </View>
+              </View>
+            )}
 
             {/* Volume Trend Chart */}
             <View style={styles.chartCard}>
@@ -675,10 +716,48 @@ export default function ProgressScreen() {
                       </View>
                     </View>
 
-                    {/* Max Weight Trend Chart */}
+                    {/* Metric Toggle */}
+                    <View style={styles.toggleContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.toggleButton,
+                          metricType === "maxWeight" && styles.toggleButtonActive,
+                        ]}
+                        onPress={() => setMetricType("maxWeight")}
+                      >
+                        <Text
+                          style={[
+                            styles.toggleText,
+                            metricType === "maxWeight" && styles.toggleTextActive,
+                          ]}
+                        >
+                          Max Weight
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.toggleButton,
+                          metricType === "est1RM" && styles.toggleButtonActive,
+                        ]}
+                        onPress={() => setMetricType("est1RM")}
+                      >
+                        <Text
+                          style={[
+                            styles.toggleText,
+                            metricType === "est1RM" && styles.toggleTextActive,
+                          ]}
+                        >
+                          Est. 1RM
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Trend Chart */}
                     <View style={styles.chartCard}>
                       <Text style={styles.chartTitle}>
-                        Max Weight Progression
+                        {metricType === "maxWeight"
+                          ? "Max Weight Progression"
+                          : "Estimated 1RM Progression"}
                       </Text>
                       <VictoryChart
                         width={width - 64}
@@ -691,12 +770,12 @@ export default function ProgressScreen() {
                               0,
                               Math.min(
                                 ...trend.data.map((d) =>
-                                  safeNumber(d.maxWeight)
+                                  safeNumber(d[metricType])
                                 )
                               ) * 0.9
                             ),
                             Math.max(
-                              ...trend.data.map((d) => safeNumber(d.maxWeight))
+                              ...trend.data.map((d) => safeNumber(d[metricType]))
                             ) * 1.1,
                           ],
                         }}
@@ -730,7 +809,7 @@ export default function ProgressScreen() {
                         <VictoryLine
                           data={sanitizeChartData(trend.data)}
                           x="date"
-                          y="maxWeight"
+                          y={metricType}
                           style={{
                             data: { stroke: "#10b981", strokeWidth: 3 },
                           }}
@@ -1142,13 +1221,24 @@ export default function ProgressScreen() {
               </View>
 
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Total Sets</Text>
+                <Text style={styles.metricLabel}>Weekly Avg</Text>
                 <View style={styles.metricValueRow}>
                   <Text style={styles.metricMainValue}>
-                    {formatNumber(stats.totalSets || 0)}
+                    {(
+                      stats.workouts /
+                      (timeRange === "1w"
+                        ? 1
+                        : timeRange === "1m"
+                        ? 4
+                        : timeRange === "3m"
+                        ? 12
+                        : timeRange === "6m"
+                        ? 26
+                        : 52)
+                    ).toFixed(1)}
                   </Text>
                 </View>
-                <Text style={styles.metricStatusText}>THIS WEEK</Text>
+                <Text style={styles.metricStatusText}>SESSIONS/WEEK</Text>
               </View>
             </View>
 
@@ -1845,5 +1935,63 @@ const styles = StyleSheet.create({
     color: "rgba(16, 185, 129, 0.9)",
     fontSize: 14,
     fontWeight: "600",
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  toggleButtonActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  toggleText: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  toggleTextActive: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  muscleSplitList: {
+    marginTop: 8,
+  },
+  muscleSplitItem: {
+    marginBottom: 12,
+  },
+  muscleSplitHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  muscleSplitName: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  muscleSplitValue: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 12,
+  },
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressBar: {
+    height: "100%",
+    backgroundColor: "#10b981",
+    borderRadius: 3,
   },
 });

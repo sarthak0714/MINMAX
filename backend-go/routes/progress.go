@@ -193,11 +193,39 @@ func getStats(c *gin.Context) {
 			"userId": userID,
 			"date":   bson.M{"$gte": startDate, "$lte": endDate},
 		}}},
-		{{Key: "$group", Value: bson.M{
-			"_id":          nil,
-			"totalVolume":  bson.M{"$sum": "$metrics.totalVolume"},
-			"totalSets":    bson.M{"$sum": "$metrics.numSets"},
-			"workoutCount": bson.M{"$sum": 1},
+		{{Key: "$facet", Value: bson.M{
+			"summary": mongo.Pipeline{
+				{{Key: "$group", Value: bson.M{
+					"_id":          nil,
+					"totalVolume":  bson.M{"$sum": "$metrics.totalVolume"},
+					"totalSets":    bson.M{"$sum": "$metrics.numSets"},
+					"workoutCount": bson.M{"$sum": 1},
+				}}},
+			},
+			"muscleSplit": mongo.Pipeline{
+				{{Key: "$unwind", Value: "$exercises"}},
+				{{Key: "$lookup", Value: bson.M{
+					"from":         "exercises",
+					"localField":   "exercises.exerciseId",
+					"foreignField": "_id",
+					"as":           "exerciseInfo",
+				}}},
+				{{Key: "$unwind", Value: "$exerciseInfo"}},
+				{{Key: "$unwind", Value: "$exercises.sets"}},
+				{{Key: "$match", Value: bson.M{
+					"exercises.sets.weight": bson.M{"$ne": nil},
+					"exercises.sets.reps":   bson.M{"$gt": 0},
+				}}},
+				{{Key: "$addFields", Value: bson.M{
+					"setVolume": bson.M{"$multiply": []interface{}{"$exercises.sets.weight", "$exercises.sets.reps"}},
+				}}},
+				{{Key: "$unwind", Value: "$exerciseInfo.targetMuscle"}},
+				{{Key: "$group", Value: bson.M{
+					"_id":    "$exerciseInfo.targetMuscle",
+					"volume": bson.M{"$sum": "$setVolume"},
+				}}},
+				{{Key: "$sort", Value: bson.M{"volume": -1}}},
+			},
 		}}},
 	}
 
@@ -208,10 +236,31 @@ func getStats(c *gin.Context) {
 	}
 	defer currentCursor.Close(ctx)
 
-	var currentStats []bson.M
-	if err := currentCursor.All(ctx, &currentStats); err != nil {
+	var currentResults []bson.M
+	if err := currentCursor.All(ctx, &currentResults); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse stats"})
 		return
+	}
+
+	current := gin.H{
+		"totalVolume":  0.0,
+		"workoutCount": 0,
+		"totalSets":    0,
+		"muscleSplit":  []gin.H{},
+	}
+
+	if len(currentResults) > 0 {
+		result := currentResults[0]
+		if summary, ok := result["summary"].(primitive.A); ok && len(summary) > 0 {
+			if s, ok := summary[0].(bson.M); ok {
+				current["totalVolume"] = s["totalVolume"]
+				current["workoutCount"] = s["workoutCount"]
+				current["totalSets"] = s["totalSets"]
+			}
+		}
+		if muscleSplit, ok := result["muscleSplit"].(primitive.A); ok {
+			current["muscleSplit"] = muscleSplit
+		}
 	}
 
 	// Get previous period for comparison
@@ -240,14 +289,7 @@ func getStats(c *gin.Context) {
 		return
 	}
 
-	current := gin.H{
-		"totalVolume":  0.0,
-		"workoutCount": 0,
-		"totalSets":    0,
-	}
-	if len(currentStats) > 0 {
-		current = gin.H(currentStats[0])
-	}
+
 
 	previous := gin.H{
 		"totalVolume":  0.0,
@@ -274,6 +316,8 @@ func getStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"totalVolume":   current["totalVolume"],
 		"workouts":      current["workoutCount"],
+		"totalSets":     current["totalSets"],
+		"muscleSplit":   current["muscleSplit"],
 		"volumeChange":  int(volumeChange),
 		"workoutChange": int(workoutChange),
 	})
@@ -314,12 +358,27 @@ func getStrengthTrends(c *gin.Context) {
 			"date":   bson.M{"$gte": startDate, "$lte": endDate},
 		}}},
 		{{Key: "$unwind", Value: "$exercises"}},
+		{{Key: "$unwind", Value: "$exercises.sets"}},
+		{{Key: "$match", Value: bson.M{
+			"exercises.sets.weight": bson.M{"$ne": nil},
+			"exercises.sets.reps":   bson.M{"$gt": 0},
+		}}},
+		{{Key: "$addFields", Value: bson.M{
+			"est1RM": bson.M{
+				"$multiply": []interface{}{
+					"$exercises.sets.weight",
+					bson.M{"$add": []interface{}{1, bson.M{"$divide": []interface{}{"$exercises.sets.reps", 30}}}},
+				},
+			},
+		}}},
 		{{Key: "$group", Value: bson.M{
 			"_id": bson.M{
 				"exerciseId": "$exercises.exerciseId",
 				"date":       bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}},
 			},
 			"maxWeight": bson.M{"$max": "$exercises.sets.weight"},
+			"est1RM":    bson.M{"$max": "$est1RM"},
+			"volume":    bson.M{"$sum": bson.M{"$multiply": []interface{}{"$exercises.sets.weight", "$exercises.sets.reps"}}},
 			"name":      bson.M{"$first": "$exercises.name"},
 		}}},
 		{{Key: "$sort", Value: bson.M{"_id.date": 1}}},
@@ -356,6 +415,8 @@ func getStrengthTrends(c *gin.Context) {
 		data = append(data, gin.H{
 			"date":      idMap["date"],
 			"maxWeight": item["maxWeight"],
+			"est1RM":    item["est1RM"],
+			"volume":    item["volume"],
 		})
 		groupedByExercise[exID]["data"] = data
 	}
@@ -488,28 +549,48 @@ func getInsights(c *gin.Context) {
 		return
 	}
 
-	// Calculate streak
-	streak := 0
+	// Calculate weekly consistency
 	today := time.Now()
-	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
+	lastWeekStart := today.AddDate(0, 0, -7)
+	twoWeeksAgoStart := today.AddDate(0, 0, -14)
 
-	for i := 0; i < len(recentWorkouts); i++ {
-		workoutDate := recentWorkouts[i]["date"].(primitive.DateTime).Time()
-		workoutDate = time.Date(workoutDate.Year(), workoutDate.Month(), workoutDate.Day(), 0, 0, 0, 0, workoutDate.Location())
-		expectedDate := today.AddDate(0, 0, -i)
+	thisWeekCount := 0
+	lastWeekCount := 0
 
-		if workoutDate.Equal(expectedDate) {
-			streak++
-		} else {
-			break
+	for _, workout := range recentWorkouts {
+		workoutDate := workout["date"].(primitive.DateTime).Time()
+		if workoutDate.After(lastWeekStart) {
+			thisWeekCount++
+		} else if workoutDate.After(twoWeeksAgoStart) {
+			lastWeekCount++
 		}
 	}
 
-	if streak >= 3 {
+	if thisWeekCount >= 3 {
 		insights = append(insights, gin.H{
 			"type":    "success",
-			"title":   "Amazing Streak!",
-			"message": fmt.Sprintf("You've worked out %d days in a row. Keep it up!", streak),
+			"title":   "Consistent Effort",
+			"message": fmt.Sprintf("You've completed %d workouts this week. Great consistency!", thisWeekCount),
+		})
+	} else if thisWeekCount > 0 {
+		insights = append(insights, gin.H{
+			"type":    "info",
+			"title":   "Weekly Progress",
+			"message": fmt.Sprintf("You've done %d workouts this week.", thisWeekCount),
+		})
+	}
+
+	if thisWeekCount > lastWeekCount && lastWeekCount > 0 {
+		insights = append(insights, gin.H{
+			"type":    "trending-up",
+			"title":   "Ramping Up",
+			"message": "You're working out more frequently than last week.",
+		})
+	} else if thisWeekCount < lastWeekCount {
+		insights = append(insights, gin.H{
+			"type":    "info",
+			"title":   "Recovery Mode",
+			"message": "Taking fewer sessions than last week? Rest is important too.",
 		})
 	}
 

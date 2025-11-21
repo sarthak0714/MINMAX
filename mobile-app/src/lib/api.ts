@@ -255,6 +255,7 @@ class ApiClient {
     avgWeight: number;
     volumeChange: number;
     workoutChange: number;
+    muscleSplit: Array<{ _id: string; volume: number }>;
   }> {
     return this.request(`/api/progress/stats${range ? `?range=${range}` : ""}`);
   }
@@ -264,7 +265,7 @@ class ApiClient {
       exerciseId: string;
       name: string;
       targetMuscle?: string[];
-      data: Array<{ date: string; maxWeight: number; volume: number }>;
+      data: Array<{ date: string; maxWeight: number; volume: number; est1RM: number }>;
     }>
   > {
     return this.request(
