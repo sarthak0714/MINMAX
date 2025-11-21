@@ -115,6 +115,23 @@ interface Exercise {
 
 const { width } = Dimensions.get("window");
 
+const getMillisecondsForRange = (range: string) => {
+  switch (range) {
+    case "1w":
+      return 7 * 24 * 60 * 60 * 1000;
+    case "1m":
+      return 30 * 24 * 60 * 60 * 1000;
+    case "3m":
+      return 90 * 24 * 60 * 60 * 1000;
+    case "6m":
+      return 180 * 24 * 60 * 60 * 1000;
+    case "1y":
+      return 365 * 24 * 60 * 60 * 1000;
+    default:
+      return 7 * 24 * 60 * 60 * 1000;
+  }
+};
+
 export default function ProgressScreen() {
   const [activeTab, setActiveTab] = useState<
     "overview" | "strength" | "consistency"
@@ -234,6 +251,59 @@ export default function ProgressScreen() {
       </View>
     );
   }
+
+  const generateGrowthInsights = () => {
+    const insights = [];
+    
+    // 1. New PRs
+    strengthTrends.forEach(trend => {
+        const data = trend.data || [];
+        if (data.length < 2) return;
+        const latest = data[data.length - 1];
+        const maxWeight = Math.max(...data.map(d => safeNumber(d.maxWeight)));
+        
+        if (safeNumber(latest.maxWeight) >= maxWeight && maxWeight > 0) {
+             insights.push({
+                id: `pr-${trend.exerciseId}`,
+                type: 'pr',
+                title: `New ${trend.name} PR!`,
+                value: `${formatNumber(maxWeight)} kg`,
+                subtitle: 'Personal Record',
+                icon: 'trophy',
+                color: '#fbbf24'
+            });
+        }
+    });
+
+    // 2. Volume Increase
+    if (stats.volumeChange > 5) {
+        insights.push({
+            id: 'vol-up',
+            type: 'volume',
+            title: 'Volume Up',
+            value: `+${formatPercent(stats.volumeChange)}`,
+            subtitle: 'vs Last Week',
+            icon: 'chart-line',
+            color: '#10b981'
+        });
+    }
+
+    // 3. Consistency Streak
+    const weeklyWorkouts = stats.workouts;
+    if (weeklyWorkouts >= 3) {
+         insights.push({
+            id: 'consistency',
+            type: 'consistency',
+            title: 'Consistent Effort',
+            value: `${weeklyWorkouts} Workouts`,
+            subtitle: 'This Week',
+            icon: 'fire',
+            color: '#f43f5e'
+        });
+    }
+
+    return insights.slice(0, 5);
+  };
 
   const renderTrendIcon = (change: number) => {
     if (change > 0) return "↑";
@@ -417,21 +487,28 @@ export default function ProgressScreen() {
                       const percentage = (item.volume / maxVolume) * 100;
                       return (
                         <View key={item._id} style={styles.muscleSplitItem}>
-                          <View style={styles.muscleSplitHeader}>
-                            <Text style={styles.muscleSplitName}>
-                              {item._id}
-                            </Text>
-                            <Text style={styles.muscleSplitValue}>
-                              {formatNumber(item.volume)} kg
-                            </Text>
-                          </View>
-                          <View style={styles.progressBarContainer}>
-                            <View
-                              style={[
-                                styles.progressBar,
-                                { width: `${percentage}%` },
-                              ]}
-                            />
+                          <View style={styles.muscleSplitRow}>
+                            <View style={styles.muscleInfo}>
+                              <Text style={styles.muscleRank}>{index + 1}</Text>
+                              <View>
+                                <Text style={styles.muscleSplitName}>
+                                  {item._id}
+                                </Text>
+                                <Text style={styles.muscleSplitValue}>
+                                  {formatNumber(item.volume)} kg
+                                </Text>
+                              </View>
+                            </View>
+                            <View style={styles.muscleGraph}>
+                               <View style={styles.progressBarContainer}>
+                                <View
+                                  style={[
+                                    styles.progressBar,
+                                    { width: `${percentage}%` },
+                                  ]}
+                                />
+                              </View>
+                            </View>
                           </View>
                         </View>
                       );
@@ -451,6 +528,7 @@ export default function ProgressScreen() {
               <VictoryChart
                 width={width - 64}
                 height={220}
+                scale={{ x: "time" }}
                 theme={VictoryTheme.material}
                 padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
               >
@@ -463,40 +541,9 @@ export default function ProgressScreen() {
                     },
                     grid: { stroke: "transparent" },
                   }}
-                  tickCount={6}
-                  tickFormat={(value) => {
-                    // For weekly data (format: "YYYY-WXX")
-                    if (typeof value === "string" && value.includes("-W")) {
-                      const week = value.split("-W")[1];
-                      return `W${week}`;
-                    }
-                    // For monthly data (format: "YYYY-MM")
-                    if (
-                      typeof value === "string" &&
-                      value.match(/^\d{4}-\d{2}$/)
-                    ) {
-                      const month = value.split("-")[1];
-                      const monthNames = [
-                        "Jan",
-                        "Feb",
-                        "Mar",
-                        "Apr",
-                        "May",
-                        "Jun",
-                        "Jul",
-                        "Aug",
-                        "Sep",
-                        "Oct",
-                        "Nov",
-                        "Dec",
-                      ];
-                      return monthNames[parseInt(month) - 1];
-                    }
-                    // For daily data (Date object)
-                    const d = new Date(value);
-                    return d.getDate().toString();
-                  }}
-                  scale="time"
+                  tickFormat={(date) =>
+                    new Date(date).getDate().toString()
+                  }
                 />
                 <VictoryAxis
                   dependentAxis
@@ -506,31 +553,32 @@ export default function ProgressScreen() {
                       fill: "rgba(255, 255, 255, 0.4)",
                       fontSize: 10,
                     },
-                    grid: {
-                      stroke: "rgba(255, 255, 255, 0.1)",
-                      strokeDasharray: "3,3",
-                    },
+                    grid: { stroke: "transparent" },
                   }}
                 />
                 <VictoryLine
-                  data={volumeData}
+                  data={sanitizeChartData(volumeData)
+                    .filter(d => new Date(d.date) <= new Date())
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
+                  interpolation="monotoneX"
                   x="date"
                   y="volume"
                   style={{
                     data: {
-                      stroke: "rgba(16, 185, 129, 0.9)",
-                      strokeWidth: 2.5,
+                      stroke: "#10b981",
+                      strokeWidth: 3,
                     },
                   }}
-                  interpolation="monotoneX"
                 />
                 <VictoryScatter
-                  data={volumeData}
+                  data={sanitizeChartData(volumeData)
+                    .filter(d => new Date(d.date) <= new Date())
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
                   x="date"
                   y="volume"
-                  size={3}
+                  size={4}
                   style={{
-                    data: { fill: "rgba(16, 185, 129, 1)" },
+                    data: { fill: "#10b981" },
                   }}
                 />
               </VictoryChart>
@@ -819,12 +867,18 @@ export default function ProgressScreen() {
 
                     {/* Volume Trend Chart */}
                     <View style={styles.chartCard}>
-                      <Text style={styles.chartTitle}>Volume Trend</Text>
+                      <View style={styles.chartHeader}>
+                        <Text style={styles.chartTitle}>Volume Trend</Text>
+                        <Text style={styles.chartSubtitle}>
+                          {getTimeRangeLabel(timeRange)}
+                        </Text>
+                      </View>
                       <VictoryChart
                         width={width - 64}
                         height={220}
                         theme={VictoryTheme.material}
                         padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                        domain={{ x: [new Date(Date.now() - getMillisecondsForRange(timeRange)), new Date()] }}
                       >
                         <VictoryAxis
                           style={{
@@ -853,13 +907,19 @@ export default function ProgressScreen() {
                           }}
                         />
                         <VictoryBar
-                          data={sanitizeChartData(trend.data)}
+                          data={sanitizeChartData(trend.data).filter(d => new Date(d.date) <= new Date())}
                           x="date"
                           y="volume"
                           style={{
-                            data: { fill: "rgba(16, 185, 129, 0.7)" },
+                            data: { 
+                              fill: ({ datum }) => {
+                                const opacity = Math.min(1, Math.max(0.3, datum.volume / 10000));
+                                return `rgba(16, 185, 129, ${opacity})`;
+                              },
+                              width: 12
+                            },
                           }}
-                          cornerRadius={{ top: 4, bottom: 0 }}
+                          cornerRadius={{ top: 4, bottom: 4 }}
                         />
                       </VictoryChart>
                     </View>
@@ -1242,75 +1302,36 @@ export default function ProgressScreen() {
               </View>
             </View>
 
-            {/* Workout Frequency Chart */}
+            {/* Training Frequency Matrix */}
+            {/* Growth Highlights */}
             <View style={styles.chartCard}>
               <View style={styles.chartHeader}>
-                <Text style={styles.chartTitle}>Workout Frequency</Text>
+                <Text style={styles.chartTitle}>Growth Highlights</Text>
                 <Text style={styles.chartSubtitle}>
                   {getTimeRangeLabel(timeRange)}
                 </Text>
               </View>
-              <VictoryChart
-                width={Dimensions.get("window").width - 64}
-                height={200}
-                theme={VictoryTheme.material}
-                padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
-              >
-                <VictoryAxis
-                  style={{
-                    axis: { stroke: "transparent" },
-                    tickLabels: {
-                      fill: "rgba(255, 255, 255, 0.4)",
-                      fontSize: 10,
-                    },
-                  }}
-                  tickFormat={(date) => {
-                    const d = new Date(date);
-                    return d
-                      .toLocaleDateString("en-US", { weekday: "short" })
-                      .substring(0, 2);
-                  }}
-                />
-                <VictoryAxis
-                  dependentAxis
-                  style={{
-                    axis: { stroke: "transparent" },
-                    tickLabels: {
-                      fill: "rgba(255, 255, 255, 0.4)",
-                      fontSize: 10,
-                    },
-                    grid: { stroke: "rgba(255, 255, 255, 0.1)" },
-                  }}
-                />
-                <VictoryBar
-                  data={sanitizeChartData(volumeData)}
-                  x="date"
-                  y="workouts"
-                  style={{
-                    data: { fill: "rgba(16, 185, 129, 0.7)" },
-                  }}
-                  cornerRadius={{ top: 4, bottom: 0 }}
-                />
-              </VictoryChart>
-            </View>
-
-            {/* Training Insights */}
-            <View style={styles.insightsSection}>
-              <Text style={styles.sectionTitle}>Training Analysis</Text>
-              {insights.length > 0 ? (
-                insights
-                  .slice(0, 3)
-                  .map((insight, index) => (
-                    <InsightCard key={index} {...insight} />
+              
+              <View style={styles.growthList}>
+                {generateGrowthInsights().length > 0 ? (
+                  generateGrowthInsights().map((item) => (
+                    <View key={item.id} style={styles.growthItem}>
+                      <View style={[styles.growthIconContainer, { backgroundColor: `${item.color}20` }]}>
+                         <FontAwesome5 name={item.icon} size={16} color={item.color} />
+                      </View>
+                      <View style={styles.growthContent}>
+                        <Text style={styles.growthTitle}>{item.title}</Text>
+                        <Text style={styles.growthSubtitle}>{item.subtitle}</Text>
+                      </View>
+                      <Text style={[styles.growthValue, { color: item.color }]}>{item.value}</Text>
+                    </View>
                   ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateTitle}>No insights yet</Text>
-                  <Text style={styles.emptyStateSubtitle}>
-                    Complete more workouts to see personalized insights
-                  </Text>
-                </View>
-              )}
+                ) : (
+                  <View style={styles.emptyGrowthState}>
+                    <Text style={styles.emptyGrowthText}>Keep training to unlock insights!</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </Animated.ScrollView>
         )}
@@ -1876,55 +1897,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-  summaryCard: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    alignItems: "center",
-  },
-  summaryLabel: {
-    color: "rgba(255, 255, 255, 0.4)",
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  summaryValue: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  consistencyGrid: {
-    flexDirection: "row",
-    marginBottom: 24,
-  },
-  consistencyCard: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    alignItems: "center",
-    marginHorizontal: 4,
-  },
-  consistencyLabel: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 11,
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  consistencyValue: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "bold",
-  },
-  consistencySubtext: {
-    color: "rgba(255, 255, 255, 0.35)",
-    fontSize: 10,
-    marginTop: 4,
-  },
+
   backButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -1993,5 +1966,139 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#10b981",
     borderRadius: 3,
+  },
+  frequencyContainer: {
+    marginTop: 16,
+    paddingHorizontal: 10,
+  },
+  weekDayLabels: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  weekDayLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+    width: 30,
+    textAlign: 'center',
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'flex-start',
+  },
+  frequencyDot: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  activeDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+  },
+  summaryCards: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  summaryIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+  },
+  summaryValue: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  muscleSplitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  muscleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  muscleRank: {
+    color: 'rgba(255,255,255,0.2)',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 12,
+    width: 20,
+    textAlign: 'center',
+  },
+  muscleGraph: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  growthList: {
+    marginTop: 16,
+    gap: 12,
+  },
+  growthItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  growthIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  growthContent: {
+    flex: 1,
+  },
+  growthTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  growthSubtitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+  },
+  growthValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  emptyGrowthState: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyGrowthText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
