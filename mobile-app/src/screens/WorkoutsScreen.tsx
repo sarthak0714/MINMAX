@@ -15,6 +15,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { apiClient, Workout, WorkoutExercise, Exercise } from "../lib/api";
+import { config } from "../lib/config";
 import AddWorkoutModal from "../components/AddWorkoutModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -84,6 +85,14 @@ export default function WorkoutsScreen() {
   );
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
+  
+  // Secret URL configuration
+  const [tapCount, setTapCount] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState(0);
+  const [showUrlModal, setShowUrlModal] = useState(false);
+  const [backendUrl, setBackendUrl] = useState("");
+  const [urlError, setUrlError] = useState("");
+  const [isMockMode, setIsMockMode] = useState(true);
 
   const weekDays = useMemo(() => getWeekDays(), []);
   const monthMatrix = useMemo(() => getMonthMatrix(new Date()), []);
@@ -113,7 +122,18 @@ export default function WorkoutsScreen() {
 
   useEffect(() => {
     loadData();
+    loadBackendUrl();
   }, []);
+
+  const loadBackendUrl = async () => {
+    const url = await config.getBackendUrl();
+    if (url) {
+      setBackendUrl(url);
+      setIsMockMode(false);
+    } else {
+      setIsMockMode(true);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -177,6 +197,63 @@ export default function WorkoutsScreen() {
     } else {
       setDeleteConfirmId(workoutId);
       setTimeout(() => setDeleteConfirmId(null), 3000);
+    }
+  };
+
+  const handleTodayTap = () => {
+    const now = Date.now();
+    if (now - lastTapTime < 2000) {
+      // Within 2 seconds of last tap
+      const newCount = tapCount + 1;
+      if (newCount === 5) {
+        // 5th tap - show modal
+        setShowUrlModal(true);
+        setTapCount(0);
+      } else {
+        setTapCount(newCount);
+      }
+    } else {
+      // Reset counter
+      setTapCount(1);
+    }
+    setLastTapTime(now);
+  };
+
+  const handleSaveUrl = async () => {
+    setUrlError("");
+    
+    if (!backendUrl.trim()) {
+      // Clear URL - return to mock mode
+      await config.clearBackendUrl();
+      await apiClient.reloadUrl();
+      setIsMockMode(true);
+      setShowUrlModal(false);
+      await loadData(); // Reload with mock data
+      return;
+    }
+
+    // Validate URL
+    if (!config.validateUrl(backendUrl)) {
+      setUrlError("Invalid URL format. Must start with http:// or https://");
+      return;
+    }
+
+    // Test connection
+    const isConnected = await config.testConnection(backendUrl);
+    if (!isConnected) {
+      setUrlError("Cannot connect to backend. Save anyway?");
+      // Allow saving even if connection fails
+    }
+
+    // Save URL
+    try {
+      await config.setBackendUrl(backendUrl);
+      await apiClient.reloadUrl();
+      setIsMockMode(false);
+      setShowUrlModal(false);
+      await loadData(); // Reload with real backend
+    } catch (error) {
+      setUrlError("Failed to save URL");
     }
   };
 
@@ -283,14 +360,23 @@ export default function WorkoutsScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>
-            {selectedDate === todayISO()
-              ? "Today"
-              : new Date(selectedDate).toLocaleDateString("en-US", {
-                  day: "numeric",
-                  month: "short",
-                })}
-          </Text>
+          <Pressable onPress={handleTodayTap}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.title}>
+                {selectedDate === todayISO()
+                  ? "Today"
+                  : new Date(selectedDate).toLocaleDateString("en-US", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+              </Text>
+              {isMockMode && (
+                <View style={styles.mockBadge}>
+                  <Text style={styles.mockBadgeText}>🔧 Mock</Text>
+                </View>
+              )}
+            </View>
+          </Pressable>
           <Pressable onPress={handleAddWorkout} style={styles.addButton}>
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </Pressable>
@@ -485,11 +571,18 @@ export default function WorkoutsScreen() {
           )}
         </View>
 
-        {/* Today's Workouts */}
+        {/* Selected Date's Workouts */}
         <View style={styles.todaySection}>
           <View style={styles.todayHeader}>
-            <Text style={styles.todayLabel}>Today</Text>
-            <Text style={styles.todayDate}>{todayISO()}</Text>
+            <Text style={styles.todayLabel}>
+              {selectedDate === todayISO()
+                ? "Today"
+                : new Date(selectedDate).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                  })}
+            </Text>
+            <Text style={styles.todayDate}>{selectedDate}</Text>
           </View>
 
           {todaysWorkouts.length === 0 ? (
@@ -682,6 +775,68 @@ export default function WorkoutsScreen() {
         workout={editingWorkout || undefined}
         onSave={handleSaveWorkout}
       />
+
+      {/* URL Configuration Modal */}
+      <Modal
+        visible={showUrlModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowUrlModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowUrlModal(false)}
+        >
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.urlModal}>
+              <Text style={styles.urlModalTitle}>Backend Configuration</Text>
+              <Text style={styles.urlModalSubtitle}>
+                {backendUrl ? 'Edit your backend URL' : 'Enter your backend URL to connect'}
+              </Text>
+
+              <TextInput
+                style={styles.urlInput}
+                value={backendUrl}
+                onChangeText={setBackendUrl}
+                placeholder="https://your-backend.com"
+                placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+
+              {urlError ? (
+                <Text style={styles.urlError}>{urlError}</Text>
+              ) : null}
+
+              <View style={styles.urlModalButtons}>
+                <Pressable
+                  onPress={() => {
+                    setBackendUrl("");
+                    setUrlError("");
+                  }}
+                  style={styles.urlClearButton}
+                >
+                  <Text style={styles.urlClearButtonText}>Clear</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleSaveUrl}
+                  style={styles.urlSaveButton}
+                >
+                  <Text style={styles.urlSaveButtonText}>Save</Text>
+                </Pressable>
+              </View>
+
+              <Pressable
+                onPress={() => setShowUrlModal(false)}
+                style={styles.urlCloseButton}
+              >
+                <Text style={styles.urlCloseButtonText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -991,5 +1146,101 @@ const styles = StyleSheet.create({
   comparisonDetail: {
     fontSize: 11,
     color: "rgba(255, 255, 255, 0.5)",
+  },
+  mockBadge: {
+    backgroundColor: "rgba(251, 146, 60, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(251, 146, 60, 0.4)",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  mockBadgeText: {
+    color: "#fb923c",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  urlModal: {
+    backgroundColor: "rgba(30, 30, 30, 0.98)",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  urlModalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  urlModalSubtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.6)",
+    marginBottom: 20,
+  },
+  urlInput: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 12,
+    padding: 14,
+    color: "#FFFFFF",
+    fontSize: 15,
+    marginBottom: 16,
+  },
+  urlError: {
+    color: "#f87171",
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  urlModalButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  urlClearButton: {
+    flex: 1,
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+  },
+  urlClearButtonText: {
+    color: "#FCA5A5",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  urlSaveButton: {
+    flex: 1,
+    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.4)",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+  },
+  urlSaveButtonText: {
+    color: "#10b981",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  urlCloseButton: {
+    padding: 12,
+    alignItems: "center",
+  },
+  urlCloseButtonText: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 14,
   },
 });

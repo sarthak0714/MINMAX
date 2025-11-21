@@ -1,5 +1,5 @@
-import { API_BASE_URL } from "../config/env";
-import mockData from "./mockData.json";
+import { config } from "./config";
+import { generateDynamicMockData } from "./dynamicMockData";
 
 export interface Exercise {
   _id: string;
@@ -44,14 +44,31 @@ export interface Workout {
 }
 
 class ApiClient {
-  private baseUrl: string;
+  private baseUrl: string | null = null;
   private isOfflineMode: boolean = false;
+  private urlInitialized: boolean = false;
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
+  constructor() {
+    // URL will be loaded dynamically
+  }
+
+  private async initializeUrl(): Promise<void> {
+    if (this.urlInitialized) return;
+    
+    this.baseUrl = await config.getBackendUrl();
+    this.isOfflineMode = this.baseUrl === null;
+    this.urlInitialized = true;
+    
+    if (this.isOfflineMode) {
+      console.log("🔧 Mock Mode: No backend URL configured");
+    } else {
+      console.log("✅ Backend URL loaded:", this.baseUrl);
+    }
   }
 
   private async checkBackendHealth(): Promise<boolean> {
+    if (!this.baseUrl) return false;
+    
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
@@ -69,7 +86,7 @@ class ApiClient {
       console.log("⚠️ Backend returned:", response.status);
       return false;
     } catch (error) {
-      console.log("🔄 Backend not available, using demo mode");
+      console.log("🔄 Backend not available, using mock mode");
       return false;
     }
   }
@@ -78,12 +95,20 @@ class ApiClient {
     endpoint: string,
     options?: RequestInit
   ): Promise<T> {
+    // Initialize URL on first request
+    await this.initializeUrl();
+
+    // If no backend URL configured, use mock mode
+    if (!this.baseUrl || this.isOfflineMode) {
+      return this.getMockResponse<T>(endpoint);
+    }
+
     // Check if backend is available on first request
     if (!this.isOfflineMode) {
       const isBackendUp = await this.checkBackendHealth();
       if (!isBackendUp) {
         this.isOfflineMode = true;
-        console.log("Demo mode activated");
+        console.log("Mock mode activated");
       }
     }
 
@@ -117,7 +142,7 @@ class ApiClient {
       return response.json();
     } catch (error) {
       console.error("API Fetch Error:", error);
-      // Fall back to demo mode on error
+      // Fall back to mock mode on error
       this.isOfflineMode = true;
       return this.getMockResponse<T>(endpoint);
     }
@@ -125,6 +150,8 @@ class ApiClient {
 
   private getMockResponse<T>(endpoint: string): T {
     console.log("Using mock data for:", endpoint);
+    
+    const mockData = generateDynamicMockData();
 
     if (endpoint.includes("/api/exercises")) {
       return { documents: mockData.exercises } as T;
@@ -304,7 +331,18 @@ class ApiClient {
   > {
     return this.request("/api/progress/insights");
   }
+
+  // Configuration management
+  async reloadUrl(): Promise<void> {
+    this.urlInitialized = false;
+    this.isOfflineMode = false;
+    await this.initializeUrl();
+  }
+
+  isMockMode(): boolean {
+    return this.isOfflineMode || this.baseUrl === null;
+  }
 }
 
-console.log("API Base URL:", API_BASE_URL);
-export const apiClient = new ApiClient(API_BASE_URL);
+export const apiClient = new ApiClient();
+
