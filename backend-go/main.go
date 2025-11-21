@@ -46,7 +46,7 @@ func main() {
 	router.SetTrustedProxies(nil)
 
 	// Health check
-	router.GET("/health", func(c *gin.Context) {
+	router.GET("/api/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
@@ -56,6 +56,7 @@ func main() {
 		routes.RegisterExerciseRoutes(api)
 		routes.RegisterWorkoutRoutes(api)
 		routes.RegisterProgressRoutes(api)
+
 	}
 
 	// Start server
